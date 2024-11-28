@@ -1,4 +1,4 @@
-from gym.spaces import Box, Dict, Discrete, MultiDiscrete, MultiBinary
+from gymnasium.spaces import Box, Dict, Discrete, MultiDiscrete, MultiBinary
 from env.gym_openAI.simulator_gym import GymEnv
 
 """

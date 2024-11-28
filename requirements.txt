@@ -1,2 +1,5 @@
-numpy
+numpy<2
 torch
+PyYAML
+pandas
+gymnasium
