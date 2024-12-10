@@ -298,7 +298,7 @@ def worker_func(arguments):
                 else:
                     actions[agent_id] = model(s)
 
-                states, r, done, _ = env.step(actions)
+                states, r, done, _ = env.step(actions)  # do the cost calculations calculation
 
                 rewards_per_eval.append(r)
                 obs_per_eval.append(s)

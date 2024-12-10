@@ -26,6 +26,7 @@ def main(gamma, wf_size):
     from config.valid_config import test_Set_Generate
     yaml_path = 'config/workflow_scheduling_es_openai.yaml'
     testMatrix = test_Set_Generate(yaml_path).testMatrix
+    print(f"Test Matrix: {testMatrix}")
 
     # which_log = 'logs/WorkflowScheduling-v0'
     which_log = 'logs/WorkflowScheduling-v3'
