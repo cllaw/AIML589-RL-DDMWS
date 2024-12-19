@@ -3,33 +3,34 @@ from utils.utils import get_state_num, get_action_num, is_discrete_action, get_n
 
 
 class Builder:
-    def __init__(self, baseconfig, testMatrix):
+    def __init__(self, baseconfig, testMatrix, multi_cloud_enabled=False):
         # self.args = baseconfig.config['runtime-config']
         # self.config = baseconfig.config['yaml-config']
         self.config = baseconfig
         self.env = None
         self.policy = None
         self.optim = None
+        self.multi_cloud_enabled = multi_cloud_enabled  # Build the simulator using multi region distributed VM's
 
         self.testMatrix = testMatrix
 
     def build(self):
-        env = build_env(self.config.config, self.testMatrix)
+        env = build_env(self.config.config, self.testMatrix, self.multi_cloud_enabled)
         self.config.config['yaml-config']["policy"]["discrete_action"] = is_discrete_action(env)  # based on the environment, decide if the action space is discrete
         self.config.config['yaml-config']["policy"]["state_num"] = get_state_num(env)  # based on the environment, generate the state num to build policy
         self.config.config['yaml-config']["policy"]["action_num"] = get_nn_output_num(env)  # based on the environment, generate the action num to build policy
         # self.config.config['yaml-config']["policy"]["action_num"] = get_action_num(env) # based on the environment, generate the action num to build policy
         policy = build_policy(self.config.config['yaml-config']["policy"])
         optim = build_optim(self.config.config['yaml-config']["optim"])
-        return AssembleRL(self.config, env, policy, optim)
+        return AssembleRL(self.config, env, policy, optim, self.multi_cloud_enabled)
 
 
-def build_env(config, testMatrix):
+def build_env(config, testMatrix, multi_cloud_enabled):
     env_name = config['yaml-config']["env"]["name"]
     config['yaml-config']['env']['evalNum'] = config['runtime-config']['eval_ep_num']
     if env_name == "WorkflowScheduling-v3":
         from env.workflow_scheduling_v3.simulator_wf import WFEnv
-        return WFEnv(env_name, config['yaml-config']["env"], testMatrix)
+        return WFEnv(env_name, config['yaml-config']["env"], testMatrix, multi_cloud_enabled)
     else:
         raise AssertionError(f"{env_name} doesn't support, please specify supported a env in yaml.")
 

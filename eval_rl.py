@@ -43,7 +43,7 @@ def main(gamma, wf_size):
             print(f'gamma:{gamma}, Wf_size:{wf_size}, Log path:{log_path}, model:{fr}')
 
             set_seed(eval_config.config["yaml-config"]['env']['seed'])
-            Builder(eval_config, testMatrix).build().eval()
+            Builder(eval_config, testMatrix, multi_cloud_enabled=True).build().eval()
 
 
 if __name__ == "__main__":

@@ -334,9 +334,10 @@ class cloud_simulator(object):
             dcid = 0    # This is used to distinguish the number of different resource types for each DC and can be omitted
             vmtype = diff % self.VMtypeNum 
 
+            # VM creation step, use randomly generated regions if multi_cloud_enabled = True
             selectedVM = VM(vmid, self.set.dataset.vmVCPU[vmtype], dcid, self.set.dataset.datacenter[dcid][0], self.nextTimeStep, self.TaskRule)
-            # print("TEST:", self.set.dataset.datacenter[dcid][0])
-            # print("TEST:", self.set.dataset.datacenter[dcid])
+            print("TEST:", self.set.dataset.datacenter[dcid][0])
+            print("TEST:", self.set.dataset.datacenter[dcid])
 
             self.vm_queues.append(selectedVM)
             self.firstvmWrfLeaveTime.append(selectedVM.get_firstTaskDequeueTime())  # new VM is math.inf
@@ -487,7 +488,7 @@ class cloud_simulator(object):
             temp = 1
         else:
             temp = 0
-        self.VMcost += temp * self.set.dataset.vmPriceLondon[cpu]  # (self.set.dataset.datacenter[dc][-1])/2 * cpu
+        self.VMcost += temp * self.set.dataset.vmPrice[cpu]  # (self.set.dataset.datacenter[dc][-1])/2 * cpu
         self.VMrentHours += temp
         # print("Episode:", self.VMcost)
 

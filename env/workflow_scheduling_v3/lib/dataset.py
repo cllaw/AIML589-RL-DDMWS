@@ -56,7 +56,7 @@ class dataset:
         # Assumption, extra costs only takes the cheapest, smallest VM into account.
         self.datacenter = [(0, 'East, USA', 0.096), (1, 'Southeast, Australia', 0.12), (2, 'West, London', 0.111)]
 
-        # TODO: Could just combine the following costs inot the datacenter variable above
+        # TODO: Could just combine the following costs into the datacenter variable above
         # N. Virginia VM Costs
         self.vmPrice = {2: 0.096, 4: 0.192, 8: 0.384, 16: 0.768, 32: 1.536, 48: 2.304}
 
@@ -73,18 +73,21 @@ class dataset:
         }
 
         # TODO: Incorporate these into EXECUTION_TIME calculation
+        # Data Communication transmittion time - amount of data + latency
+        # amount of data transferred between dependent tasks
+        # D / bandwidth (bandwitdh for intercontinental connections)
         self.latencyMap = {
             "us-east-1": {
                 "ap-southeast-2": 197,  # Latency to Sydney
-                "eu-west-2": 264  # Latency to London
+                "eu-west-2": 75  # Latency to London
             },
             "ap-southeast-2": {
                 "us-east-1": 197,  # Latency to N. Virginia
-                "eu-west-2": 75  # Latency to London
+                "eu-west-2": 264  # Latency to London
             },
             "eu-west-2": {
-                "us-east-1": 264,  # Latency to N. Virginia
-                "ap-southeast-2": 75  # Latency to Sydney
+                "us-east-1": 75,  # Latency to N. Virginia
+                "ap-southeast-2": 264  # Latency to Sydney
             }
         }
 

@@ -19,7 +19,7 @@ import builder
 
 class AssembleRL(BaseAssembleRL):
 
-    def __init__(self, config, env, policy, optim):
+    def __init__(self, config, env, policy, optim, multi_cloud_enabled):
         super(AssembleRL, self).__init__()
 
         self.config = config
@@ -27,6 +27,7 @@ class AssembleRL(BaseAssembleRL):
         self.env = env
         self.policy = policy
         self.optim = optim
+        self.multi_cloud_enabled = multi_cloud_enabled
 
         #  settings for running
         self.running_mstd = self.config.config['yaml-config']["optim"]['input_running_mean_std']
@@ -224,7 +225,7 @@ class AssembleRL(BaseAssembleRL):
         # start rollout works
         start_time_test = time.time()
 
-        results = [worker_func(arg) for arg in arguments]
+        results = [worker_func(arg) for arg in arguments]  # Begin evaluation process on VM's
 
         end_time_test = time.time() - start_time_test
 

@@ -11,7 +11,7 @@ import env.workflow_scheduling_v3.lib.dataset as dataset
 
 
 class WFEnv(cloud_simulator):
-    def __init__(self, name, args, testMatrix):
+    def __init__(self, name, args, testMatrix, multi_cloud_enabled):
 
         # Create a train_dataset under a specific seed
         wf_types = len(dataset.dataset_dict[args["wf_size"]])
