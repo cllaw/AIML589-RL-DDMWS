@@ -1,5 +1,7 @@
 # import numpy as np
 import os, sys, inspect
+import numpy as np
+
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(os.path.dirname(currentdir))
 sys.path.insert(0, parentdir)
@@ -10,7 +12,7 @@ import heapq
 
 
 class VM:
-    def __init__(self, id, cpu, dcind, abind, t, rule): 
+    def __init__(self, id, cpu, dcind, abind, t, rule, multi_cloud_enabled=False):
         ##self, vmID, vmCPU, dcID, dataset.datacenter[dcid][0], self.nextTimeStep, task_selection_rule
         self.vmid = id
         self.cpu = cpu
@@ -27,10 +29,11 @@ class VM:
         self.pendingTaskNum = 0
         self.taskSelectRule = rule
         self.currentQlen = 0
-        self.regionid = 0   # VM creation step with distributed cloud
 
+        # VM creation step with distributed cloud
         # For now: randomly initialize a new region for each instance, validate the calculation is correct.
-        # region_id = np.random.randint(3)  # TODO: Change dataset var to a dict for each region
+        # modify randint param to change number of regions considered
+        self.regionid = 0 if not multi_cloud_enabled else np.random.randint(2)  # maps to self.dataset.region_map
 
     def get_utilization(self, app, task):
         numOfTask = self.totalProcessTime / (app.get_taskProcessTime(task)/self.cpu)

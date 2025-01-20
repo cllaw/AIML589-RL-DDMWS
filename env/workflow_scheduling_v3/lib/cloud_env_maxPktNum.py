@@ -12,6 +12,11 @@ import os, sys, inspect, random, copy
 import gymnasium
 import torch
 
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
 from env.workflow_scheduling_v3.lib.stats import Stats
 from env.workflow_scheduling_v3.lib.poissonSampling import one_sample_poisson
 from env.workflow_scheduling_v3.lib.vm import VM
@@ -259,6 +264,7 @@ class cloud_simulator(object):
                 print('-----> wrong index:', self.uselessAllocation)
 
     def extend_specific_VM(self, VMindex):
+        print(f'Extending specific VM {VMindex}')
         key = self.vm_queues_id[VMindex]
         maxTimeStep = max(self.vm_queues[VMindex].currentTimeStep, self.nextTimeStep)
         self.VMRemainAvaiTime[key] = self.vm_queues_rentEndTime[VMindex] - maxTimeStep - self.vm_queues[VMindex].vmQueueTime()  # has idle gap
@@ -266,7 +272,11 @@ class cloud_simulator(object):
             self.VMRemainAvaiTime[key] += self.set.VMpayInterval
             self.vm_queues[VMindex].update_vmRentEndTime(self.set.VMpayInterval)
             self.vm_queues_rentEndTime[VMindex] = self.vm_queues[VMindex].rentEndTime
-            self.update_VMcost(self.vm_queues[VMindex].loc, self.vm_queues[VMindex].cpu, True) 
+
+            # print("Extend remove VMs", self.vm_queues[VMindex].loc)  #TODO: Remove .loc attribute or rework
+            # print("Extend remove VMs", self.vm_queues[VMindex])
+
+            self.update_VMcost(self.vm_queues[VMindex].regionid, self.vm_queues[VMindex].cpu, True)
             self.VMrentInfos[key] = self.VMrentInfos[key][:4] + [self.vm_queues[VMindex].rentEndTime]  # self.VMrentInfos[key][-1]+self.set.dataset.vmPrice[self.vm_queues[VMindex].cpu]]
 
     def record_a_completed_workflow(self, ddl_penalty):
@@ -283,7 +293,9 @@ class cloud_simulator(object):
                 write_csv_data(self.pkt_trace_file, Workflow_Infos + Task_Infos + VM_Infos)
 
     # Check whether the machine's lease period needs to be extended
-    def extend_remove_VMs(self): 
+    # TODO: Not in use, consider removing?
+    def extend_remove_VMs(self):
+        print("Current VM's", self.vm_queues_id)
         expiredVMid = []
         for key in self.VMRemainingTime:
             ind = self.vm_queues_id.index(key)
@@ -295,12 +307,17 @@ class cloud_simulator(object):
                     expiredVMid.append(key) 
                 else:
                     while self.VMRemainAvaiTime[key] <= 0:
+                        print(f'Extending VM {key}')
                         self.VMRemainingTime[key] += self.set.VMpayInterval
                         self.VMRemainAvaiTime[key] += self.set.VMpayInterval
                         self.vm_queues[ind].update_vmRentEndTime(self.set.VMpayInterval)
-                        self.update_VMcost(self.vm_queues[ind].loc, self.vm_queues[ind].cpu, True)
+
+                        # print("Extend remove VMs", self.vm_queues[ind])
+                        # print("Extend remove VMs", ind)
+                        self.update_VMcost(self.vm_queues[ind].regionid, self.vm_queues[ind].cpu, True)
 
         if len(expiredVMid) > 0:  # Really remove here
+            print(f'Remove VM {expiredVMid}')
             if not self.nextisUsr:
                 nextvmid = self.vm_queues[self.nextUsr].vmid
 
@@ -329,22 +346,24 @@ class cloud_simulator(object):
         # ---1) Map & Dispatch
         # maping the action to the vm_id in current VM queue
         diff = action - len(self.vm_queues)
-        # print("TEST DIFF:", diff)
+        print("TEST DIFF:", diff)
+
+        # Negative differences spin up new VM's
         if diff > -1:  # a new VM is deployed
             vmid = self.generate_vmid()  # Randomly generate a set of numbers to name
+            print(f"New VM {vmid} deployed.")
             dcid = 0    # This is used to distinguish the number of different resource types for each DC and can be omitted
             vmtype = diff % self.VMtypeNum 
 
-            # VM creation step, use randomly generated regions if multi_cloud_enabled = True
-            selectedVM = VM(vmid, self.set.dataset.vmVCPU[vmtype], dcid, self.set.dataset.datacenter[dcid][0], self.nextTimeStep, self.TaskRule)
-            # print("Datacenter region:", self.set.dataset.datacenter[dcid][0])
-            print("Datacenter region:", self.set.dataset.datacenter[dcid])
+            # TODO: VM creation step, use randomly generated regions if multi_cloud_enabled = True
+            selectedVM = VM(vmid, self.set.dataset.vmVCPU[vmtype], dcid, self.set.dataset.datacenter[dcid][0], self.nextTimeStep, self.TaskRule, multi_cloud_enabled=True)
+            print("VM region:", self.set.dataset.region_map[selectedVM.regionid])
 
             self.vm_queues.append(selectedVM)
             self.firstvmWrfLeaveTime.append(selectedVM.get_firstTaskDequeueTime())  # new VM is math.inf
             self.vm_queues_id.append(vmid)
             self.vm_queues_cpu.append(self.set.dataset.vmVCPU[vmtype]) 
-            self.update_VMcost(dcid, self.set.dataset.vmVCPU[vmtype], True)
+            self.update_VMcost(selectedVM.regionid, self.set.dataset.vmVCPU[vmtype], True)
             selectedVMind = -1
             self.VMRemainingTime[vmid] = self.set.VMpayInterval  # initialize the remaining time for the new VM
             self.VMRemainAvaiTime[vmid] = self.set.VMpayInterval            
@@ -359,6 +378,7 @@ class cloud_simulator(object):
 
         # dispatch nextWrf to selectedVM and update the wrfLeaveTime on selectedVM 
         parentTasks = self.nextWrf.get_allpreviousTask(self.PrenextTask)
+        print(f"Remaining Parent tasks: {parentTasks}")
         if len(parentTasks) == len(self.nextWrf.completeTaskSet(parentTasks)):  # all its predecessor tasks have been done, just double-check
             processTime = self.vm_queues[selectedVMind].task_enqueue(self.PrenextTask, self.PrenextTimeStep, self.nextWrf)
             self.VMexecHours += processTime/3600                                                                                                              
@@ -483,24 +503,27 @@ class cloud_simulator(object):
         return reward, self.usr_respTime, self.usr_received_wrfNum, self.usr_sent_pktNum, done
                ## r,    usr_respTime,      usr_received_appNum,      usr_sent_pktNum,      d
 
-    def update_VMcost(self, dc, cpu, add=True):
+
+    def update_VMcost(self, region_id: int, cpu: int, add=True):
         """
             Method to calculate the total VM cost during an episode
             In DDMWS VM region is checked and its specific price is used accordingly
 
-            dc:  Int - Data Center id, used to determine the price of VM to use
             cpu: Int - number of CPU's to use for the VM
+            regionid: Int - region id of the selected VM, used to determine the price of VM to use
             add: Boolean that determines if a new VM needs to be leased or not
         """
         if add:
             temp = 1
         else:
             temp = 0
-        self.VMcost += temp * self.set.dataset.vm_basefee[dc] * cpu
+        print("VM Region ID:", region_id)
+        self.VMcost += temp * self.set.dataset.vm_basefee[region_id] * cpu
         self.VMrentHours += temp
+        print("Episode cpu:", cpu)
         print("Episode VMCost:", self.VMcost)
         print("Episode VMrentHours:", self.VMrentHours)
-        print("Processed DC:", (self.set.dataset.vm_basefee[dc]))
+        print("VM Location:", (self.set.dataset.vm_basefee[region_id]))
 
     def calculate_penalty(self, app, respTime):
         appID = app.get_appID()
