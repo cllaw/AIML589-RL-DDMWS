@@ -51,13 +51,9 @@ class dataset:
 
         self.request = np.array([1]) * 0.01  # Poisson distribution: the default is 0.01, lets test 10.0 1.0 and 0.1
 
-        # Data transfer, Latency. Cross check with the simulator that the total cost/time accounts for this
-        # Can do this by hand, and emulating the code.
-
-        # Assumption, extra costs only takes the cheapest, smallest VM into account.
-        self.datacenter = [(0, 'East, USA', 0.096), (1, 'Southeast, Australia', 0.12), (2, 'West, London', 0.111)]
-
         # Base VM cost per CPU per region
+        # Min CPU's provided from services is usually 2, so we define the base fee as this divide by 2 for 1 CPU
+        # Assumption: extra costs only takes the cheapest, smallest VM into account.
         # Keys are region_ids
         self.vm_basefee = {
             0: 0.048,  # East, USA, N.Virginia
@@ -75,6 +71,9 @@ class dataset:
         # Data Communication transmittion time - amount of data + latency
         # amount of data transferred between dependent tasks
         # D / bandwidth (bandwitdh for intercontinental connections)
+
+        # Data transfer, Latency. Cross check with the simulator that the total cost/time accounts for this
+        # Can do this by hand, and emulating the code.
         self.latencyMap = {
             "us-east-1": {
                 "ap-southeast-2": 197,  # Latency to Sydney

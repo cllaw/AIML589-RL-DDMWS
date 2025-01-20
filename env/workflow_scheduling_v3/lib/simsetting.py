@@ -59,11 +59,11 @@ class Setting(object):
 
     def _init(self, num):
         if num == 0:
-            latency_matrix = np.array([[0]])
-            latency = np.multiply(latency_matrix, 0.5)
-            self.candidate = [0]
-            self.dcNum = len(self.candidate)   # default: 1
-            self.usrNum = latency.shape[0]  # default: 1
+            latency_matrix = np.array([[0, 1, 2]])
+            latency = np.multiply(latency_matrix, 0.5)  # TODO: Incorporate real latency between the regions here
+            self.candidate = [0, 1, 2]
+            self.dcNum = len(self.candidate)   # default: 3
+            self.usrNum = latency.shape[0]  # default: 3
             self.candidate.sort()
             self.usr2dc = latency[:, self.candidate]
 
