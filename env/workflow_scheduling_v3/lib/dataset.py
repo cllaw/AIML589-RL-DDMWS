@@ -47,6 +47,7 @@ class dataset:
             self.wsetBeta.append(2)
 
         self.vmVCPU = [2, 4, 8, 16, 32, 48]  # EC2 m5
+        # self.vmVCPU = [2]  # EC2 m5
 
         self.request = np.array([1]) * 0.01  # Poisson distribution: the default is 0.01, lets test 10.0 1.0 and 0.1
 
@@ -69,10 +70,6 @@ class dataset:
             1: "ap-southeast-2",
             2: "eu-west-2"
         }
-
-        # TODO: Could just combine the following costs into the datacenter variable above
-        # N. Virginia VM Costs
-        self.vmPrice = {2: 0.096, 4: 0.192, 8: 0.384, 16: 0.768, 32: 1.536, 48: 2.304}
 
         # TODO: Incorporate these into EXECUTION_TIME calculation
         # Data Communication transmittion time - amount of data + latency
