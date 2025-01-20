@@ -357,7 +357,7 @@ class cloud_simulator(object):
             vm_cpu = self.set.dataset.vmVCPU[vm_type_index]  # int representing how many cpus on a particular vm
 
             # TODO: VM creation step, use randomly generated regions if multi_cloud_enabled = True
-            selectedVM = VM(vmid, vm_cpu, dcid, dcid, self.nextTimeStep, self.TaskRule, multi_cloud_enabled=False)
+            selectedVM = VM(vmid, vm_cpu, dcid, dcid, self.nextTimeStep, self.TaskRule, self.set.distributed_cloud_enabled)
             print("VM region:", self.set.dataset.region_map[selectedVM.regionid])
 
             self.vm_queues.append(selectedVM)
@@ -383,7 +383,8 @@ class cloud_simulator(object):
         # print(f"Remaining Parent tasks: {parentTasks}")
         if len(parentTasks) == len(self.nextWrf.completeTaskSet(parentTasks)):  # all its predecessor tasks have been done, just double-check
             processTime = self.vm_queues[selectedVMind].task_enqueue(self.PrenextTask, self.PrenextTimeStep, self.nextWrf)
-            self.VMexecHours += processTime/3600                                                                                                              
+            print(f"Process Time: {processTime}")
+            self.VMexecHours += processTime/3600
             self.firstvmWrfLeaveTime[selectedVMind] = self.vm_queues[selectedVMind].get_firstTaskDequeueTime()  # return currunt timestap on this machine
             self.extend_specific_VM(selectedVMind) 
 
@@ -590,11 +591,13 @@ class cloud_simulator(object):
             ob[-1] = task_ob + [meetDeadline, extraCost, vm_remainTime]
 
         for dcind in range(self.dcNum):  # for new VM that can be rented
+            # TODO: Find out what ob does for evaluation (if anything)
             print(f"For new VM that can be rented dcind: {dcind}")
             for cpuNum in self.set.dataset.vmVCPU:
                 task_exe_time = self.nextWrf.get_taskProcessTime(self.nextTask) / cpuNum
                 extra_VM_hour = math.ceil(task_exe_time / self.set.VMpayInterval)
                 extraCost = self.set.dataset.vm_basefee[dcind] * cpuNum * extra_VM_hour
+                # print(f"Extra hour: {extra_VM_hour}, ExtraCost: {extraCost}")
                 if task_exe_time + self.nextTimeStep < self.appSubDeadline[self.nextWrf][self.nextTask]:  # vm can satisfy task sub-deadline
                     meetDeadline = 1  # 1: indicate the vm can meet the task sub-deadline
                 else:
@@ -602,6 +605,8 @@ class cloud_simulator(object):
                     extraCost += 1 + self.set.dataset.wsetBeta[self.nextWrf.get_appID()] * (task_exe_time + self.nextTimeStep - self.appSubDeadline[self.nextWrf][self.nextTask])  # add SLA penalty
                 vm_remainTime = round(self.set.VMpayInterval * extra_VM_hour - task_exe_time, 5)
                 ob.append([])
+                # print(f"Extra Cost: {extraCost} for VM ({cpuNum} CPU) in region: {self.set.dataset.region_map[dcind]}")
+                # print(f"VM remaining time: {vm_remainTime}")
                 ob[-1] = task_ob + [meetDeadline, extraCost, vm_remainTime]
 
         # if a VM is the best fit, i.e., min(extraCost)

@@ -49,6 +49,10 @@ class Setting(object):
         self.pkt_trace_sample_freq = 10
         self.VMpayInterval = 60 * 60
         self.dataset = dataset(args["wf_size"])
+
+        # For DDMWS, add option to run simulation in distributed setting
+        self.distributed_cloud_enabled = args['distributed_cloud_enabled']
+
         # setting for total workflow number
         self.WorkflowNum = args["wf_num"]
         self._init(self.envid)
@@ -59,13 +63,19 @@ class Setting(object):
 
     def _init(self, num):
         if num == 0:
-            latency_matrix = np.array([[0, 1, 2]])
+            # [0] for default US single_region_id
+            # [0, 1, 2] for distributed regions in DDMWS that maps to a distinct region
+            region_ids = [0, 1, 2] if self.distributed_cloud_enabled else [0]
+
+            latency_matrix = np.array([region_ids])
             latency = np.multiply(latency_matrix, 0.5)  # TODO: Incorporate real latency between the regions here
-            self.candidate = [0, 1, 2]
+            print(f"Latency: {latency}")
+            self.candidate = region_ids
             self.dcNum = len(self.candidate)   # default: 3
-            self.usrNum = latency.shape[0]  # default: 3
+            self.usrNum = latency.shape[0]  # default: 1
             self.candidate.sort()
             self.usr2dc = latency[:, self.candidate]
+            print(f"usrNum Latency: {self.usrNum}")
 
         else:
             assert (num == 0), "Please set envid to 0!"

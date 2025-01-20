@@ -74,7 +74,7 @@ class dataset:
 
         # Data transfer, Latency. Cross check with the simulator that the total cost/time accounts for this
         # Can do this by hand, and emulating the code.
-        self.latencyMap = {
+        self.latency_map = {
             "us-east-1": {
                 "ap-southeast-2": 197,  # Latency to Sydney
                 "eu-west-2": 75  # Latency to London

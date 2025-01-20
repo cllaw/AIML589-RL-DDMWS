@@ -18,7 +18,7 @@ def set_seed(seed):
     torch.manual_seed(seed)
 
 
-def main(gamma, wf_size):
+def main(gamma, wf_size, distributed_cloud_enabled):
     print(f"gamma:{gamma}")
     print(f"wf_size:{wf_size}\n")
 
@@ -39,12 +39,12 @@ def main(gamma, wf_size):
             model = f'{log_path}/saved_models/ep_{fr}.pt'
             if not os.path.exists(model):
                 break
-            eval_config = EvalConfig(fr, log_path, wf_size, gamma)
+            eval_config = EvalConfig(fr, log_path, wf_size, gamma, distributed_cloud_enabled)
             print(f'gamma:{gamma}, Wf_size:{wf_size}, Log path:{log_path}, model:{fr}')
 
             set_seed(eval_config.config["yaml-config"]['env']['seed'])
-            Builder(eval_config, testMatrix, multi_cloud_enabled=True).build().eval()
+            Builder(eval_config, testMatrix).build().eval()
 
 
 if __name__ == "__main__":
-    main(gamma=2.0, wf_size="S")
+    main(gamma=2.0, wf_size="S", distributed_cloud_enabled=False)

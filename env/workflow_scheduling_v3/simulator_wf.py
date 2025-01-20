@@ -11,7 +11,7 @@ import env.workflow_scheduling_v3.lib.dataset as dataset
 
 
 class WFEnv(cloud_simulator):
-    def __init__(self, name, args, testMatrix, multi_cloud_enabled):
+    def __init__(self, name, args, testMatrix):
 
         # Create a train_dataset under a specific seed
         wf_types = len(dataset.dataset_dict[args["wf_size"]])
@@ -31,7 +31,8 @@ class WFEnv(cloud_simulator):
         # Setup
         config = {"traffic pattern": args['traffic_pattern'], "seed": args['seed'], "gamma": args['gamma'],
                   "envid": 0, "wf_size": args["wf_size"], "wf_num": args["wf_num"],
-                  "trainSet": train_dataset, 'testSet': test_dataset}
+                  "trainSet": train_dataset, 'testSet': test_dataset,
+                  "distributed_cloud_enabled": args["distributed_cloud_enabled"]}
         super(WFEnv, self).__init__(config)
         self.name = name
 

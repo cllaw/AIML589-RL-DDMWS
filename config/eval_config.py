@@ -9,7 +9,7 @@ import os
 class EvalConfig(metaclass=ABCMeta):
 
     def __init__(self, *args):
-        fr, log_path, wf_size, gamma = args
+        fr, log_path, wf_size, gamma, distributed_cloud_enabled = args
         parser = argparse.ArgumentParser()
         parser.add_argument("--config", type=str, default=f"{log_path}/profile.yaml")
         parser.add_argument("--policy_path", type=str, default=f'{log_path}/saved_models/ep_{fr}.pt',
@@ -24,6 +24,7 @@ class EvalConfig(metaclass=ABCMeta):
         parser.add_argument("--save_gif", action="store_true")
         parser.add_argument('--wf_size', '-w', type=str, default=wf_size)  # Ya added
         parser.add_argument('--gamma', '-g', type=float, default=gamma)  # Ya added
+        parser.add_argument('--distributed_cloud_enabled', '-d', type=bool, default=distributed_cloud_enabled)  # Chuan added
         args = parser.parse_args()
 
         with open(args.config) as f:
@@ -35,6 +36,9 @@ class EvalConfig(metaclass=ABCMeta):
 
             if args.gamma is not None:  # Ya added
                 config['env']['gamma'] = args.gamma
+
+            if args.distributed_cloud_enabled is not None:  # Chuan added
+                config['env']['distributed_cloud_enabled'] = args.distributed_cloud_enabled
 
         if args.save_gif:
             run_num = args.ckpt_path.split("/")[-3]
