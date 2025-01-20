@@ -56,21 +56,23 @@ class dataset:
         # Assumption, extra costs only takes the cheapest, smallest VM into account.
         self.datacenter = [(0, 'East, USA', 0.096), (1, 'Southeast, Australia', 0.12), (2, 'West, London', 0.111)]
 
-        # TODO: Could just combine the following costs into the datacenter variable above
-        # N. Virginia VM Costs
-        self.vmPrice = {2: 0.096, 4: 0.192, 8: 0.384, 16: 0.768, 32: 1.536, 48: 2.304}
+        # Base VM cost per CPU per region
+        # Keys are region_ids
+        self.vm_basefee = {
+            0: 0.048,  # East, USA, N.Virginia
+            1: 0.06,   # Southeast, Australia, Sydney
+            2: 0.0555  # West, Europe, London
+        }
 
-        # Sydney VM Costs
-        self.vmPriceSydney = {2: 0.12, 4: 0.24, 8: 0.48, 16: 0.96, 32: 1.92, 48: 2.88}
-
-        # London VM Costs
-        self.vmPriceLondon = {2: 0.111, 4: 0.222, 8: 0.444, 16: 0.888, 32: 1.776, 48: 2.664}
-
-        self.regionMap = {
+        self.region_map = {
             0: "us-east-1",
             1: "ap-southeast-2",
             2: "eu-west-2"
         }
+
+        # TODO: Could just combine the following costs into the datacenter variable above
+        # N. Virginia VM Costs
+        self.vmPrice = {2: 0.096, 4: 0.192, 8: 0.384, 16: 0.768, 32: 1.536, 48: 2.304}
 
         # TODO: Incorporate these into EXECUTION_TIME calculation
         # Data Communication transmittion time - amount of data + latency

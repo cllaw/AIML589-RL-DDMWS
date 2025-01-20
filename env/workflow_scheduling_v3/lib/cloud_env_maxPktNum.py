@@ -152,6 +152,7 @@ class cloud_simulator(object):
         self.stat = Stats(self.set)
 
     # Generate one workflow at one time
+    # TODO: Add data transfer tasks in these workflows
     def workflow_generator(self, usr, appID):
         wrf = self.set.dataset.wset[appID]
         nextArrivalTime = one_sample_poisson(self.set.get_individual_arrival_rate(self.usrcurrentTime[usr], usr, appID),
@@ -336,8 +337,8 @@ class cloud_simulator(object):
 
             # VM creation step, use randomly generated regions if multi_cloud_enabled = True
             selectedVM = VM(vmid, self.set.dataset.vmVCPU[vmtype], dcid, self.set.dataset.datacenter[dcid][0], self.nextTimeStep, self.TaskRule)
-            print("TEST:", self.set.dataset.datacenter[dcid][0])
-            print("TEST:", self.set.dataset.datacenter[dcid])
+            # print("Datacenter region:", self.set.dataset.datacenter[dcid][0])
+            print("Datacenter region:", self.set.dataset.datacenter[dcid])
 
             self.vm_queues.append(selectedVM)
             self.firstvmWrfLeaveTime.append(selectedVM.get_firstTaskDequeueTime())  # new VM is math.inf
@@ -482,15 +483,24 @@ class cloud_simulator(object):
         return reward, self.usr_respTime, self.usr_received_wrfNum, self.usr_sent_pktNum, done
                ## r,    usr_respTime,      usr_received_appNum,      usr_sent_pktNum,      d
 
-    # calculate the total VM cost during an episode
     def update_VMcost(self, dc, cpu, add=True):
+        """
+            Method to calculate the total VM cost during an episode
+            In DDMWS VM region is checked and its specific price is used accordingly
+
+            dc:  Int - Data Center id, used to determine the price of VM to use
+            cpu: Int - number of CPU's to use for the VM
+            add: Boolean that determines if a new VM needs to be leased or not
+        """
         if add:
             temp = 1
         else:
             temp = 0
-        self.VMcost += temp * self.set.dataset.vmPrice[cpu]  # (self.set.dataset.datacenter[dc][-1])/2 * cpu
+        self.VMcost += temp * self.set.dataset.vm_basefee[dc] * cpu
         self.VMrentHours += temp
-        # print("Episode:", self.VMcost)
+        print("Episode VMCost:", self.VMcost)
+        print("Episode VMrentHours:", self.VMrentHours)
+        print("Processed DC:", (self.set.dataset.vm_basefee[dc]))
 
     def calculate_penalty(self, app, respTime):
         appID = app.get_appID()
