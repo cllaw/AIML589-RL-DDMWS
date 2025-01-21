@@ -37,7 +37,8 @@ class VM:
 
     def get_utilization(self, app, task):
         numOfTask = self.totalProcessTime / (app.get_taskProcessTime(task)/self.cpu)
-        util = numOfTask/self.get_capacity(app, task) 
+        util = numOfTask/self.get_capacity(app, task)
+        print(f"Capacity of task {task}: {self.get_capacity(app, task)}")
         return util  ## == self.totalProcessTime / 60*60
 
     def get_capacity(self, app, task):

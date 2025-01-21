@@ -164,6 +164,8 @@ class cloud_simulator(object):
                                              self.usrcurrentTime[usr])
         self.remainWrfNum += 1
 
+        # print("Workflow:", wrf)
+
         # add workflow deadline to the workflow
         pkt = Workflow(self.usrcurrentTime[usr], wrf, appID, usr, self.set.dataset.wsetSlowestT[appID], self.set.dueTimeCoef[usr, appID], self.wrfIndex)  # self.set.gamma / max(self.set.dataset.vmVCPU))
         self.usr_queues[usr].enqueue(pkt, self.usrcurrentTime[usr], None, usr, 0)  # None means that workflow has not started yet
@@ -358,7 +360,7 @@ class cloud_simulator(object):
 
             # TODO: VM creation step, use randomly generated regions if multi_cloud_enabled = True
             selectedVM = VM(vmid, vm_cpu, dcid, dcid, self.nextTimeStep, self.TaskRule, self.set.distributed_cloud_enabled)
-            print("VM region:", self.set.dataset.region_map[selectedVM.regionid])
+            # print("New VM deployed in region:", self.set.dataset.region_map[selectedVM.regionid])
 
             self.vm_queues.append(selectedVM)
             self.firstvmWrfLeaveTime.append(selectedVM.get_firstTaskDequeueTime())  # new VM is math.inf
@@ -383,8 +385,11 @@ class cloud_simulator(object):
         # print(f"Remaining Parent tasks: {parentTasks}")
         if len(parentTasks) == len(self.nextWrf.completeTaskSet(parentTasks)):  # all its predecessor tasks have been done, just double-check
             processTime = self.vm_queues[selectedVMind].task_enqueue(self.PrenextTask, self.PrenextTimeStep, self.nextWrf)
-            print(f"Process Time: {processTime}")
+
+            # TODO: Add Data Transfer Latency if next selected VM is not in the same region as the previous workflow
+            # print(f"Process Time: {processTime}")
             self.VMexecHours += processTime/3600
+
             self.firstvmWrfLeaveTime[selectedVMind] = self.vm_queues[selectedVMind].get_firstTaskDequeueTime()  # return currunt timestap on this machine
             self.extend_specific_VM(selectedVMind) 
 
@@ -523,10 +528,10 @@ class cloud_simulator(object):
         # print("VM Region ID:", region_id)
         self.VMcost += temp * self.set.dataset.vm_basefee[region_id] * cpu
         self.VMrentHours += temp
-        print("Episode cpu:", cpu)
-        print("Episode VMCost:", self.VMcost)
-        print("Episode VMrentHours:", self.VMrentHours)
-        print("VM Location:", (self.set.dataset.vm_basefee[region_id]))
+        # print("Episode cpu:", cpu)
+        # print("Episode VMCost:", self.VMcost)
+        # print("Episode VMrentHours:", self.VMrentHours)
+        # print("VM Location:", (self.set.dataset.vm_basefee[region_id]))
 
     def calculate_penalty(self, app, respTime):
         appID = app.get_appID()
@@ -592,7 +597,7 @@ class cloud_simulator(object):
 
         for dcind in range(self.dcNum):  # for new VM that can be rented
             # TODO: Find out what ob does for evaluation (if anything)
-            print(f"For new VM that can be rented dcind: {dcind}")
+            # print(f"For new VM that can be rented dcind: {dcind}")
             for cpuNum in self.set.dataset.vmVCPU:
                 task_exe_time = self.nextWrf.get_taskProcessTime(self.nextTask) / cpuNum
                 extra_VM_hour = math.ceil(task_exe_time / self.set.VMpayInterval)

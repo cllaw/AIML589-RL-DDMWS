@@ -90,6 +90,10 @@ class Workflow:
         return self.app.nodes[task]['processTime']  # networkx
         # return self.app.vs[task]['processTime']  # igraph
 
+    # TODO: Currently each task is an object as part of a DAG data structure.
+    #  Consider how you will add source region location to a each task in a workflow
+    #  What would constitute as inter region data transfer?
+    #  - When a sucessor task gets run on a VM outside its source region?
     # return the next task list given the current task ID
     def get_allnextTask(self, task):
         if task is None:
