@@ -100,6 +100,10 @@ class VM:
             return self.vmQueue.qlen()+1  # 1 is needed
 
     def task_enqueue(self, task, enqueueTime, app, resort=False):
+        # Update task location in the workflow
+        app.update_taskLocation(task, self.regionid)
+
+        print(f"Get task process time: {app.get_taskProcessTime(task)}")
         temp = app.get_taskProcessTime(task)/self.cpu
         self.totalProcessTime += temp
         self.pendingTaskTime += temp        

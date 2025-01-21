@@ -11,6 +11,7 @@ class Workflow:
         self.dequeueTime = {}  # {nodeID: dequeueTime for each service} to ensure all parallel services are completed before the aggregated service starts
         self.pendingIndexOnDC ={}
         self.processDC = {}  # {nodeID: dc_ind} ensure parallel services are aggregated to the same destination service
+        self.processRegion = {}  # {nodeID: region_id} ensure all tasks have information about what region they were run from
         self.executeTime = {}
         self.queuingTask = []  # tasks that are currently in queue. Mostly for parallel services
         self.maxProcessTime = time  # the max processing time for the app if parallel processing is enabled and no propagation latency
@@ -71,6 +72,12 @@ class Workflow:
         else:
             return None
 
+    def get_taskRegion(self, task):
+        if task in self.processRegion:
+            return self.processRegion[task]
+        else:
+            return None
+
     def get_generateTime(self):
         return self.generateTime
 
@@ -123,3 +130,48 @@ class Workflow:
     def get_allTask(self):
         return list(self.app.nodes)  # networkx
         # return self.app.vs.indices   # igraph
+
+    # Store the region ID for each task based on the VM processing it
+    def update_taskLocation(self, task, vm_region_id):
+        self.processRegion[task] = vm_region_id
+
+    def calculate_communicationDelay(self, task, successorTask, dataSize_bits, bandwidth_map, latency_map):
+        """
+        Calculate communication delay between tasks processed in different regions.
+        Args:
+            task: Current task ID.
+            successorTask: ID of the successor task.
+            dataSize_bits: Float representing the approximated size in bits of the task to process
+            bandwidth_map: Dict of bandwidth values for each vCPU VM Type.
+            latency_map: Dict of inter-region communication delays.
+        Returns:
+            Delay (float) if tasks are in different regions, else 0.
+        """
+        region1 = self.get_taskRegion(task)
+        region2 = self.get_taskRegion(successorTask)
+
+        if region1 is not None and region2 is not None and region1 != region2:
+            return (dataSize_bits / 8 * 1e9) + latency_map[region1][region2]
+        return 0
+
+    def process_successor_tasks(self, task, data_scaling_factor, bandwidth_map, latency_map):
+        """
+        Process the successors of the given task with region-based logic.
+        Args:
+            task: Current task ID.
+            data_scaling_factor: Float to use when approximating task execution time to data size
+            bandwidth_map: Dict of bandwidth values for each vCPU VM Type.
+            latency_map: Dict of inter-region communication delays.
+        """
+        successors = self.get_allnextTask(task)
+
+        # In DDMWS we estimate the datasize in bits of a task based on its processing time
+        dataSize_mb = self.get_taskProcessTime(task) * data_scaling_factor  # Data size in MB
+        dataSize_bits = dataSize_mb * 8 * 1e6  # Convert MB to bits
+
+        for successor in successors:
+            delay = self.calculate_communicationDelay(task, successor, dataSize_bits, bandwidth_map, latency_map)
+            if delay > 0:
+                print(f"Adding delay of {delay} for inter-region communication.")
+                # Adjust enqueue time or other timing metrics accordingly
+                self.enqueueTime[successor] += delay

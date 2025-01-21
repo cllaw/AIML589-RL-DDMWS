@@ -511,15 +511,14 @@ class cloud_simulator(object):
         return reward, self.usr_respTime, self.usr_received_wrfNum, self.usr_sent_pktNum, done
                ## r,    usr_respTime,      usr_received_appNum,      usr_sent_pktNum,      d
 
-
     def update_VMcost(self, region_id: int, cpu: int, add=True):
         """
             Method to calculate the total VM cost during an episode
             In DDMWS VM region is checked and its specific price is used accordingly
-
-            cpu: Int - number of CPU's to use for the VM
-            regionid: Int - region id of the selected VM, used to determine the price of VM to use
-            add: Boolean that determines if a new VM needs to be leased or not
+            Args:
+                region_id: Int - region id of the selected VM, used to determine the price of VM to use
+                cpu: Int - number of CPU's to use for the VM
+                add: Boolean that determines if a new VM needs to be leased or not
         """
         if add:
             temp = 1

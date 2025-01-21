@@ -47,4 +47,4 @@ def main(gamma, wf_size, distributed_cloud_enabled):
 
 
 if __name__ == "__main__":
-    main(gamma=2.0, wf_size="S", distributed_cloud_enabled=False)
+    main(gamma=2.0, wf_size="S", distributed_cloud_enabled=True)

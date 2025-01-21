@@ -302,6 +302,7 @@ def worker_func(arguments):
                 else:
                     actions[agent_id] = model(s)
 
+                # print(f"Actions for workflow: {actions}")
                 states, r, done, _ = env.step(actions)  # do the cost calculations calculation
 
                 rewards_per_eval.append(r)

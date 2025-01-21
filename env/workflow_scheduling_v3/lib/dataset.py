@@ -61,10 +61,21 @@ class dataset:
             2: 0.0555  # West, Europe, London
         }
 
+        # Inter-region communication delays
         self.region_map = {
             0: "us-east-1",
             1: "ap-southeast-2",
             2: "eu-west-2"
+        }
+
+        # Bandwidth values for each vCPU VM Type
+        self.bandwidth_map = {
+            2: 8,
+            4: 8,
+            8: 8,
+            16: 8,
+            32: 10,
+            48: 12
         }
 
         # TODO: Incorporate these into EXECUTION_TIME calculation
@@ -74,18 +85,20 @@ class dataset:
 
         # Data transfer, Latency. Cross check with the simulator that the total cost/time accounts for this
         # Can do this by hand, and emulating the code.
+
+        # Inter-region communication delays
         self.latency_map = {
-            "us-east-1": {
-                "ap-southeast-2": 197,  # Latency to Sydney
-                "eu-west-2": 75  # Latency to London
+            0: {  # From N. Virginia
+                1: 197,  # Latency to Sydney
+                2: 75  # Latency to London
             },
-            "ap-southeast-2": {
-                "us-east-1": 197,  # Latency to N. Virginia
-                "eu-west-2": 264  # Latency to London
+            1: {  # From Sydney
+                0: 197,  # Latency to N. Virginia
+                2: 264  # Latency to London
             },
-            "eu-west-2": {
-                "us-east-1": 75,  # Latency to N. Virginia
-                "ap-southeast-2": 264  # Latency to Sydney
+            2: {  # From London
+                0: 75,  # Latency to N. Virginia
+                1: 264  # Latency to Sydney
             }
         }
 
