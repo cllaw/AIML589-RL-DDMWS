@@ -99,14 +99,28 @@ class VM:
         else:
             return self.vmQueue.qlen()+1  # 1 is needed
 
-    def task_enqueue(self, task, enqueueTime, app, resort=False):
+    def task_enqueue(self, task, enqueueTime, app, bandwidth_map, latency_map, region_map,
+                     resort=False, data_scaling_factor=0.5):
+        """
+        Method to enqueue tasks - when a task is placed into a VM for processing
+
+        Args:
+            task: the current task to be processed on a workflow
+            enqueueTime: the enqueue time of the current task
+        """
         # Update task location in the workflow
         app.update_taskLocation(task, self.regionid)
 
-        print(f"Get task process time: {app.get_taskProcessTime(task)}")
-        temp = app.get_taskProcessTime(task)/self.cpu
+        temp = app.get_taskProcessTime(task) / self.cpu
+        print(f"Original Task Process time (Size(t)): {app.get_taskProcessTime(task)}")
+        print(f"Original Task Execution Time (EXT(t)): {temp}")
+
+        # Latency and data transfer cost calculation for DDMWS
+        app.process_successor_tasks(enqueueTime, task, data_scaling_factor, self.cpu, self.vmid,
+                                    bandwidth_map, latency_map, region_map)
+
         self.totalProcessTime += temp
-        self.pendingTaskTime += temp        
+        self.pendingTaskTime += temp
         self.currentQlen = self.get_pendingTaskNum()
 
         app.update_executeTime(temp, task)
@@ -114,8 +128,14 @@ class VM:
         self.vmQueue.enqueue(app, enqueueTime, task, self.vmid, enqueueTime) # last is priority
 
         if self.processingApp is None:
+            """
+            self.processingApp is an attribute of the VM class that represents the task currently being processed by this VM.
+            If self.processingApp is None, it means the VM is idle and not working on any task.
+            """
             self.process_task()
 
+        print(f"Task {task} complete -> Execution time: {temp}")
+        print(f"---------")
         return temp
 
     def task_dequeue(self, resort=True):
@@ -142,22 +162,25 @@ class VM:
         return task, app 
 
     def process_task(self): #
-        self.processingtask, self.processingApp = self.vmQueue.dequeue() 
-            # Pop and return the smallest item from the heap, the popped item is deleted from the heap
+        print("-------\n")
+        print("Empty Processing App so running this:")
+        self.processingtask, self.processingApp = self.vmQueue.dequeue()
+
+        # Pop and return the smallest item from the heap, the popped item is deleted from the heap
         enqueueTime = self.processingApp.get_enqueueTime(self.processingtask)
         processTime = self.processingApp.get_executeTime(self.processingtask)
 
-        taskStratTime = max(enqueueTime , self.currentTimeStep)
-        leaveTime = taskStratTime +processTime
+        taskStratTime = max(enqueueTime, self.currentTimeStep)
+        leaveTime = taskStratTime + processTime
 
         self.processingApp.update_enqueueTime(taskStratTime, self.processingtask, self.vmid)
         self.pendingTaskTime -= processTime
         self.processingApp.update_pendingIndexVM(self.processingtask, self.pendingTaskNum)
-        self.pendingTaskNum+=1
+        self.pendingTaskNum += 1
         self.currentTimeStep = leaveTime
 
     def vmQueueTime(self): 
-        return max(round(self.pendingTaskTime,3), 0)
+        return max(round(self.pendingTaskTime, 3), 0)
 
     def vmTotalTime(self): 
         return self.totalProcessTime

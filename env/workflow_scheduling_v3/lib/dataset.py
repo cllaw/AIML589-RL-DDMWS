@@ -68,9 +68,9 @@ class dataset:
             2: "eu-west-2"
         }
 
-        # Bandwidth values for each vCPU VM Type
+        # Bandwidth values for each vCPU VM Type in Gigbits per second (Gbps)
         self.bandwidth_map = {
-            2: 8,
+            2: 8,  # Assume these are 8 as documentation says "Up to 10 Gbps"
             4: 8,
             8: 8,
             16: 8,
@@ -86,7 +86,7 @@ class dataset:
         # Data transfer, Latency. Cross check with the simulator that the total cost/time accounts for this
         # Can do this by hand, and emulating the code.
 
-        # Inter-region communication delays
+        # Inter-region communication delays in milliseconds (ms)
         self.latency_map = {
             0: {  # From N. Virginia
                 1: 197,  # Latency to Sydney

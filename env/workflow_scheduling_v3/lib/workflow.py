@@ -1,3 +1,4 @@
+import numpy as np
 
 class Workflow:
     def __init__(self, generateTime1, app, appID, originDC, time, ratio, index):
@@ -135,43 +136,70 @@ class Workflow:
     def update_taskLocation(self, task, vm_region_id):
         self.processRegion[task] = vm_region_id
 
-    def calculate_communicationDelay(self, task, successorTask, dataSize_bits, bandwidth_map, latency_map):
+    def calculate_communicationDelay(self, task, successorTask, dataSize_bits, bandwidth_in_bits, latency_map, region_map):
         """
         Calculate communication delay between tasks processed in different regions.
         Args:
             task: Current task ID.
             successorTask: ID of the successor task.
             dataSize_bits: Float representing the approximated size in bits of the task to process
-            bandwidth_map: Dict of bandwidth values for each vCPU VM Type.
+            bandwidth_in_bits: int bandwidth speed in bits per second.
             latency_map: Dict of inter-region communication delays.
+            latency_map: Dict of region ids to region names.
         Returns:
             Delay (float) if tasks are in different regions, else 0.
         """
         region1 = self.get_taskRegion(task)
         region2 = self.get_taskRegion(successorTask)
+        print(f"Data Size (bits): {dataSize_bits}")
 
         if region1 is not None and region2 is not None and region1 != region2:
-            return (dataSize_bits / 8 * 1e9) + latency_map[region1][region2]
+            # convert latency ms to seconds
+            communication_delay = (dataSize_bits / bandwidth_in_bits) + (latency_map[region1][region2] / 1000)
+            print(f"Adding delay of {communication_delay} seconds (s) for inter-region communication between "
+                  f"{region_map[region1]} to {region_map[region2]}")
+            return communication_delay
         return 0
 
-    def process_successor_tasks(self, task, data_scaling_factor, bandwidth_map, latency_map):
+    def process_successor_tasks(self, task_enqueue_time, task, data_scaling_factor, cpu, vm_id, bandwidth_map, latency_map, region_map):
         """
         Process the successors of the given task with region-based logic.
         Args:
+            task_enqueue_time: the enqueue time of the current task
             task: Current task ID.
             data_scaling_factor: Float to use when approximating task execution time to data size
             bandwidth_map: Dict of bandwidth values for each vCPU VM Type.
+            cpu: int the number of CPU's the VM has (VMType).
+            vm_id: int the ID of the VM running this workflow is being run on.
             latency_map: Dict of inter-region communication delays.
         """
         successors = self.get_allnextTask(task)
+        print(f"Processing Task {task} -> Successors: {successors}")
 
-        # In DDMWS we estimate the datasize in bits of a task based on its processing time
-        dataSize_mb = self.get_taskProcessTime(task) * data_scaling_factor  # Data size in MB
-        dataSize_bits = dataSize_mb * 8 * 1e6  # Convert MB to bits
-
+        # need to update the successor task enqueue times with new ready_time
         for successor in successors:
-            delay = self.calculate_communicationDelay(task, successor, dataSize_bits, bandwidth_map, latency_map)
-            if delay > 0:
-                print(f"Adding delay of {delay} for inter-region communication.")
-                # Adjust enqueue time or other timing metrics accordingly
-                self.enqueueTime[successor] += delay
+            # In DDMWS we estimate the datasize in bits of a task based on its processing time
+            dataSize_mb = self.get_taskProcessTime(task) * data_scaling_factor  # Data size in MB
+            dataSize_bits = dataSize_mb * 8000000  # Convert MB to bits
+
+            # TODO: This shouldnt be in here, find way to simulate this as part of the scheduling policy
+            #  There should be a scheduling policy that selects a particular VM and you just use the location in it
+            self.update_taskLocation(successor, np.random.randint(2))
+            print(f"Get successor task process time: {self.get_taskProcessTime(successor)}")
+
+            temp_sucessor = self.get_taskProcessTime(successor) / cpu
+            bandwidth_in_bits = bandwidth_map[cpu] * 1000000000  # 1 billion bits in a gigabyte
+            print(f"\nSuccessor Task Original Execution Time: {temp_sucessor}(s) on VM with {cpu} vCPU's")
+            communication_delay = self.calculate_communicationDelay(task,
+                                                                    successor,
+                                                                    dataSize_bits,
+                                                                    bandwidth_in_bits,
+                                                                    latency_map,
+                                                                    region_map)
+            if communication_delay > 0:
+                print("App EnqueueTime:", task_enqueue_time)
+
+                # adding communication delay to execution time and the new enqueue time of the successor tasks
+                self.update_executeTime(temp_sucessor + communication_delay, successor)
+                self.update_enqueueTime(task_enqueue_time + communication_delay, successor, vm_id)
+                print(f"Successor Task new Execution Time: {temp_sucessor + communication_delay}")

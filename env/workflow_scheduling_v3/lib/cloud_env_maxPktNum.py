@@ -384,12 +384,18 @@ class cloud_simulator(object):
         parentTasks = self.nextWrf.get_allpreviousTask(self.PrenextTask)
         # print(f"Remaining Parent tasks: {parentTasks}")
         if len(parentTasks) == len(self.nextWrf.completeTaskSet(parentTasks)):  # all its predecessor tasks have been done, just double-check
-            processTime = self.vm_queues[selectedVMind].task_enqueue(self.PrenextTask, self.PrenextTimeStep, self.nextWrf)
 
-            # TODO: Add Data Transfer Latency if next selected VM is not in the same region as the previous workflow
+            # DDMWS: task_enqueue adds Data Transfer Latency if next selected VM is not in the same region
+            #   as the previous workflow
+            processTime = self.vm_queues[selectedVMind].task_enqueue(self.PrenextTask,
+                                                                     self.PrenextTimeStep,
+                                                                     self.nextWrf,
+                                                                     self.set.dataset.bandwidth_map,
+                                                                     self.set.dataset.latency_map,
+                                                                     self.set.dataset.region_map)
+
             # print(f"Process Time: {processTime}")
             self.VMexecHours += processTime/3600
-
             self.firstvmWrfLeaveTime[selectedVMind] = self.vm_queues[selectedVMind].get_firstTaskDequeueTime()  # return currunt timestap on this machine
             self.extend_specific_VM(selectedVMind) 
 
