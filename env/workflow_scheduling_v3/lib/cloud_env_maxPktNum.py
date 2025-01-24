@@ -401,6 +401,7 @@ class cloud_simulator(object):
 
             # DDMWS: task_enqueue adds Data Transfer Latency if next selected VM is not in the same region
             #   as the previous workflow
+            # TODO: Breakdown a workflow into smaller tasks and validate data transfer costs are correct
             processTime = self.vm_queues[selectedVMind].task_enqueue(self.PrenextTask,
                                                                      self.PrenextTimeStep,
                                                                      self.nextWrf,

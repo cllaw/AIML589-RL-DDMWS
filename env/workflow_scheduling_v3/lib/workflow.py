@@ -187,6 +187,7 @@ class Workflow:
         print(f"VM ID: {vm_id} | {cpu} vCPUs | {region_map[region_id]}")
         print(f"Processing Task {task} {region_map[self.get_taskRegion(task)]} -> Successors: {successors}")
 
+        total_communication_delay = 0  # all applicable delays from sucessor tasks
         # need to update the successor task enqueue times with new ready_time
         for successor in successors:
             # In DDMWS we estimate the datasize in bits of a task based on its processing time
@@ -215,3 +216,6 @@ class Workflow:
                 self.update_executeTime(temp_successor + communication_delay, successor)
                 self.update_enqueueTime(task_enqueue_time + communication_delay, successor, vm_id)
                 print(f"Successor Task new Execution Time: {temp_successor + communication_delay}")
+                total_communication_delay += communication_delay
+
+        return total_communication_delay

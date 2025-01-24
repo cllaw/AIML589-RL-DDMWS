@@ -112,8 +112,8 @@ class VM:
         print(f"Original Task Execution Time (EXT(t)): {temp}")
 
         # Latency and data transfer cost calculation for DDMWS
-        app.process_successor_tasks(enqueueTime, task, data_scaling_factor, self.cpu, self.vmid, self.regionid,
-                                    bandwidth_map, latency_map, region_map)
+        communication_delay = app.process_successor_tasks(enqueueTime, task, data_scaling_factor, self.cpu, self.vmid, self.regionid,
+                                                          bandwidth_map, latency_map, region_map)
 
         self.totalProcessTime += temp
         self.pendingTaskTime += temp
@@ -132,7 +132,7 @@ class VM:
 
         print(f"Task {task} complete -> Execution time: {temp}")
         print(f"---------")
-        return temp
+        return temp + communication_delay
 
     def task_dequeue(self, resort=True):
         task, app = self.processingtask, self.processingApp
