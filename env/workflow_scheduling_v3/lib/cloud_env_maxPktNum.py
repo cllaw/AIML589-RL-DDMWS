@@ -343,12 +343,20 @@ class cloud_simulator(object):
 
     # Function prototype is vf_ob, ac_ob, rew, new, _ = env.step(ac)
     def step(self, action):
-        # decode the action: the index of the vm which ranges from 0 to len(self.vm_queues)+self.vmtypeNum*self.dcNum
+        # print(f"TEST ALL VMS: {self.vm_queues}")
+        print(f"TEST ALL VMS: {len(self.vm_queues)}")
+        print(f"TEST ALL VMS: {[vm.cpu for vm in self.vm_queues]}")
+        print(f"TEST ALL VMS: {[self.set.dataset.region_map[vm.regionid] for vm in self.vm_queues]}")
+        print(f"TEST ALL VMS: {self.VMRemainingTime}")
+        print(f"TEST ALL VMS: {self.VMrentInfos}")
+        # print(f"TEST ALL VMS: {self.VMRemainAvaiTime}")  # Whats the difference between these?
 
+        # decode the action: the index of the vm which ranges from 0 to len(self.vm_queues)+self.vmtypeNum*self.dcNum
         # ---1) Map & Dispatch
         # maping the action to the vm_id in current VM queue
         diff = action - len(self.vm_queues)
-        # print("TEST DIFF:", diff)
+        region_count = len(self.set.dataset.region_map)  # Number of regions available
+        print("Scheduling policy DIFF:", diff)
 
         # Negative differences spin up new VM's
         if diff > -1:  # a new VM is deployed
@@ -358,9 +366,12 @@ class cloud_simulator(object):
             vm_type_index = diff % self.VMtypeNum
             vm_cpu = self.set.dataset.vmVCPU[vm_type_index]  # int representing how many cpus on a particular vm
 
-            # TODO: VM creation step, use randomly generated regions if multi_cloud_enabled = True
-            selectedVM = VM(vmid, vm_cpu, dcid, dcid, self.nextTimeStep, self.TaskRule, self.set.distributed_cloud_enabled)
-            # print("New VM deployed in region:", self.set.dataset.region_map[selectedVM.regionid])
+            # Region Selection Rule
+            # Assign region ID based on diff and the number of regions if distributed cloud setting is enabled
+            region_id = diff % region_count if self.set.distributed_cloud_enabled else 0
+
+            selectedVM = VM(vmid, vm_cpu, dcid, dcid, self.nextTimeStep, self.TaskRule, region_id)
+            print("New VM deployed in region:", self.set.dataset.region_map[selectedVM.regionid])
 
             self.vm_queues.append(selectedVM)
             self.firstvmWrfLeaveTime.append(selectedVM.get_firstTaskDequeueTime())  # new VM is math.inf
@@ -374,7 +385,10 @@ class cloud_simulator(object):
             self.vm_queues_rentEndTime.append(self.vm_queues[selectedVMind].rentEndTime)
 
             self.VMrentInfos[vmid] = [vmid, vm_cpu, self.set.dataset.vm_basefee[selectedVM.regionid] * vm_cpu,
-                                      self.nextTimeStep, self.vm_queues[selectedVMind].rentEndTime]     
+                                      self.nextTimeStep, self.vm_queues[selectedVMind].rentEndTime]
+        # diff <= -1 - the action refers to an existing VM in self.vm_queues
+        # The task will be scheduled on one of the currently rented VMs
+        #   using the action index as the VM in vm_queues[selectedVMind]
         else:
             selectedVMind = action
         reward = 0
@@ -393,6 +407,10 @@ class cloud_simulator(object):
                                                                      self.set.dataset.bandwidth_map,
                                                                      self.set.dataset.latency_map,
                                                                      self.set.dataset.region_map)
+            # TODO: Not sure if this is required? Check
+            # Update the successor task’s region when it’s assigned to the selected VM
+            print("CALLING REGION UPDATE AFTER WRF IS COMPLETE")
+            self.nextWrf.update_taskLocation(self.PrenextTask, self.vm_queues[selectedVMind].regionid)
 
             # print(f"Process Time: {processTime}")
             self.VMexecHours += processTime/3600

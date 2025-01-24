@@ -161,7 +161,15 @@ class Workflow:
             return communication_delay
         return 0
 
-    def process_successor_tasks(self, task_enqueue_time, task, data_scaling_factor, cpu, vm_id, bandwidth_map, latency_map, region_map):
+    def select_vm_for_task(self, vm_queues):
+        # Example: Choose the first available VM or deploy a new one
+        for vm in vm_queues:
+            if vm.get_pendingTaskNum() == 0:  # VM is idle
+                return vm
+        return None  # No available VM
+
+    def process_successor_tasks(self, task_enqueue_time, task, data_scaling_factor, cpu, vm_id, region_id,
+                                bandwidth_map, latency_map, region_map):
         """
         Process the successors of the given task with region-based logic.
         Args:
@@ -171,10 +179,13 @@ class Workflow:
             bandwidth_map: Dict of bandwidth values for each vCPU VM Type.
             cpu: int the number of CPU's the VM has (VMType).
             vm_id: int the ID of the VM running this workflow is being run on.
+            region_id: int the region ID of the VM
             latency_map: Dict of inter-region communication delays.
+            region_map: Dict of region_ids to region names.
         """
         successors = self.get_allnextTask(task)
-        print(f"Processing Task {task} -> Successors: {successors}")
+        print(f"VM ID: {vm_id} | {cpu} vCPUs | {region_map[region_id]}")
+        print(f"Processing Task {task} {region_map[self.get_taskRegion(task)]} -> Successors: {successors}")
 
         # need to update the successor task enqueue times with new ready_time
         for successor in successors:
@@ -184,12 +195,13 @@ class Workflow:
 
             # TODO: This shouldnt be in here, find way to simulate this as part of the scheduling policy
             #  There should be a scheduling policy that selects a particular VM and you just use the location in it
+            # Determine which VM and region will process the successor
             self.update_taskLocation(successor, np.random.randint(2))
             print(f"Get successor task process time: {self.get_taskProcessTime(successor)}")
 
-            temp_sucessor = self.get_taskProcessTime(successor) / cpu
+            temp_successor = self.get_taskProcessTime(successor) / cpu
             bandwidth_in_bits = bandwidth_map[cpu] * 1000000000  # 1 billion bits in a gigabyte
-            print(f"\nSuccessor Task Original Execution Time: {temp_sucessor}(s) on VM with {cpu} vCPU's")
+            print(f"\nSuccessor Task Original Execution Time: {temp_successor}(s) on VM with {cpu} vCPU's")
             communication_delay = self.calculate_communicationDelay(task,
                                                                     successor,
                                                                     dataSize_bits,
@@ -200,6 +212,6 @@ class Workflow:
                 print("App EnqueueTime:", task_enqueue_time)
 
                 # adding communication delay to execution time and the new enqueue time of the successor tasks
-                self.update_executeTime(temp_sucessor + communication_delay, successor)
+                self.update_executeTime(temp_successor + communication_delay, successor)
                 self.update_enqueueTime(task_enqueue_time + communication_delay, successor, vm_id)
-                print(f"Successor Task new Execution Time: {temp_sucessor + communication_delay}")
+                print(f"Successor Task new Execution Time: {temp_successor + communication_delay}")

@@ -12,7 +12,7 @@ import heapq
 
 
 class VM:
-    def __init__(self, id, cpu, dcind, abind, t, rule, multi_cloud_enabled=False):
+    def __init__(self, id, cpu, dcind, abind, t, rule, region_id):
         ##self, vmID, vmCPU, dcID, dataset.datacenter[dcid][0], self.nextTimeStep, task_selection_rule
         self.vmid = id
         self.cpu = cpu
@@ -29,11 +29,7 @@ class VM:
         self.pendingTaskNum = 0
         self.taskSelectRule = rule
         self.currentQlen = 0
-
-        # VM creation step with distributed cloud
-        # For now: randomly initialize a new region for each instance, validate the calculation is correct.
-        # modify randint param to change number of regions considered
-        self.regionid = 0 if not multi_cloud_enabled else np.random.randint(2)  # maps to self.dataset.region_map
+        self.regionid = region_id  # DDMWS VM creation step with distributed cloud needs to hold region information
 
     def get_utilization(self, app, task):
         numOfTask = self.totalProcessTime / (app.get_taskProcessTime(task)/self.cpu)
@@ -116,7 +112,7 @@ class VM:
         print(f"Original Task Execution Time (EXT(t)): {temp}")
 
         # Latency and data transfer cost calculation for DDMWS
-        app.process_successor_tasks(enqueueTime, task, data_scaling_factor, self.cpu, self.vmid,
+        app.process_successor_tasks(enqueueTime, task, data_scaling_factor, self.cpu, self.vmid, self.regionid,
                                     bandwidth_map, latency_map, region_map)
 
         self.totalProcessTime += temp
