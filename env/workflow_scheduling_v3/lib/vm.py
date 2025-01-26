@@ -95,7 +95,7 @@ class VM:
         else:
             return self.vmQueue.qlen()+1  # 1 is needed
 
-    def task_enqueue(self, task, enqueueTime, app, bandwidth_map, latency_map, region_map,
+    def task_enqueue(self, task, enqueueTime, app, bandwidth_map, latency_map, region_map, data_transfer_cost_map,
                      resort=False, data_scaling_factor=0.5):
         """
         Method to enqueue tasks - when a task is placed into a VM for processing
@@ -103,6 +103,11 @@ class VM:
         Args:
             task: the current task to be processed on a workflow
             enqueueTime: the enqueue time of the current task
+            bandwidth_map: Dict of bandwidth values for each vCPU VM Type.
+            latency_map: Dict of inter-region communication delays.
+            region_map: Dict of region_ids to region names.
+            data_transfer_cost_map: Dict of inter-region data transfer costs.
+            data_scaling_factor: Float used as the processing time scaling factor to data size conversion
         """
         # Update task location in the workflow
         app.update_taskLocation(task, self.regionid)
@@ -112,8 +117,8 @@ class VM:
         print(f"Original Task Execution Time (EXT(t)): {temp}")
 
         # Latency and data transfer cost calculation for DDMWS
-        communication_delay = app.process_successor_tasks(enqueueTime, task, data_scaling_factor, self.cpu, self.vmid, self.regionid,
-                                                          bandwidth_map, latency_map, region_map)
+        communication_delay, data_transfer_cost = app.process_successor_tasks(enqueueTime, task, data_scaling_factor, self.cpu, self.vmid, self.regionid,
+                                                                              bandwidth_map, latency_map, region_map, data_transfer_cost_map)
 
         self.totalProcessTime += temp
         self.pendingTaskTime += temp
@@ -132,7 +137,7 @@ class VM:
 
         print(f"Task {task} complete -> Execution time: {temp}")
         print(f"---------")
-        return temp + communication_delay
+        return temp + communication_delay, data_transfer_cost
 
     def task_dequeue(self, resort=True):
         task, app = self.processingtask, self.processingApp

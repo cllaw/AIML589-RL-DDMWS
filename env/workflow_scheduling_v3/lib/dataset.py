@@ -102,3 +102,10 @@ class dataset:
             }
         }
 
+        # Inter-region data transfer costs per GB
+        self.data_transfer_cost_map = {
+            0: 0.02,
+            1: 0.098,
+            2: 0.02
+        }
+

@@ -145,7 +145,7 @@ class Workflow:
             dataSize_bits: Float representing the approximated size in bits of the task to process
             bandwidth_in_bits: int bandwidth speed in bits per second.
             latency_map: Dict of inter-region communication delays.
-            latency_map: Dict of region ids to region names.
+            region_map: Dict of region ids to region names.
         Returns:
             Delay (float) if tasks are in different regions, else 0.
         """
@@ -168,26 +168,43 @@ class Workflow:
                 return vm
         return None  # No available VM
 
+    def calculate_data_transfer_cost(self, data_size_bits, region_id, data_transfer_cost_map):
+        """
+        Method tho calculate inter-region data transfer costs associated with a source region
+
+        Args
+            data_size_bits: Float representing the approximated size in bits of the task to process
+            source_region_id: Int representing the region id of the source task
+            data_transfer_cost_map: Dict of inter-region data transfer costs.
+        """
+        data_size_gb = data_size_bits / 1000000000
+        transfer_cost = data_size_gb * data_transfer_cost_map[region_id]
+
+        return transfer_cost
+
     def process_successor_tasks(self, task_enqueue_time, task, data_scaling_factor, cpu, vm_id, region_id,
-                                bandwidth_map, latency_map, region_map):
+                                bandwidth_map, latency_map, region_map, data_transfer_cost_map):
         """
         Process the successors of the given task with region-based logic.
         Args:
             task_enqueue_time: the enqueue time of the current task
             task: Current task ID.
             data_scaling_factor: Float to use when approximating task execution time to data size
-            bandwidth_map: Dict of bandwidth values for each vCPU VM Type.
             cpu: int the number of CPU's the VM has (VMType).
             vm_id: int the ID of the VM running this workflow is being run on.
             region_id: int the region ID of the VM
+            bandwidth_map: Dict of bandwidth values for each vCPU VM Type.
             latency_map: Dict of inter-region communication delays.
             region_map: Dict of region_ids to region names.
+            data_transfer_cost_map: Dict of inter-region data transfer costs.
         """
         successors = self.get_allnextTask(task)
         print(f"VM ID: {vm_id} | {cpu} vCPUs | {region_map[region_id]}")
         print(f"Processing Task {task} {region_map[self.get_taskRegion(task)]} -> Successors: {successors}")
 
-        total_communication_delay = 0  # all applicable delays from sucessor tasks
+        total_communication_delay = 0  # all applicable delays from successor tasks
+        total_data_transfer_cost = 0  # all applicable data transfer costs from source task to sucessors
+
         # need to update the successor task enqueue times with new ready_time
         for successor in successors:
             # Ensure enqueueTime for successor is initialized
@@ -213,8 +230,9 @@ class Workflow:
                                                                     bandwidth_in_bits,
                                                                     latency_map,
                                                                     region_map)
-            if communication_delay > 0:
+            if communication_delay > 0:  # inter region costs need to be considered
                 print("App EnqueueTime:", task_enqueue_time)
+                total_data_transfer_cost += self.calculate_data_transfer_cost(dataSize_bits, region_id, data_transfer_cost_map)
 
                 # adding communication delay to execution time and the new enqueue time of the successor tasks
                 self.update_executeTime(temp_successor + communication_delay, successor)
@@ -226,6 +244,7 @@ class Workflow:
 
                 print(f"Successor Task new Execution Time: {temp_successor + communication_delay}")
                 print(f"Successor Task new Enqueue Time: {new_enqueue_time}")
+                # print(f"Data Transfer costs to inter-region VM: {total_data_transfer_cost}")
                 total_communication_delay += communication_delay
 
-        return total_communication_delay
+        return total_communication_delay, total_data_transfer_cost

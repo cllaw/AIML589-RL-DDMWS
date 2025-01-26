@@ -266,7 +266,7 @@ class cloud_simulator(object):
                 print('-----> wrong index:', self.uselessAllocation)
 
     def extend_specific_VM(self, VMindex):
-        # print(f'Extending specific VM {VMindex}')
+        print(f'Extending specific VM {VMindex}')
         key = self.vm_queues_id[VMindex]
         maxTimeStep = max(self.vm_queues[VMindex].currentTimeStep, self.nextTimeStep)
         self.VMRemainAvaiTime[key] = self.vm_queues_rentEndTime[VMindex] - maxTimeStep - self.vm_queues[VMindex].vmQueueTime()  # has idle gap
@@ -402,21 +402,25 @@ class cloud_simulator(object):
             # DDMWS: task_enqueue adds Data Transfer Latency if next selected VM is not in the same region
             #   as the previous workflow
             # TODO: Breakdown a workflow into smaller tasks and validate data transfer costs are correct
-            processTime = self.vm_queues[selectedVMind].task_enqueue(self.PrenextTask,
-                                                                     self.PrenextTimeStep,
-                                                                     self.nextWrf,
-                                                                     self.set.dataset.bandwidth_map,
-                                                                     self.set.dataset.latency_map,
-                                                                     self.set.dataset.region_map)
+            processTime, data_transfer_cost = self.vm_queues[selectedVMind]\
+                .task_enqueue(self.PrenextTask,
+                              self.PrenextTimeStep,
+                              self.nextWrf,
+                              self.set.dataset.bandwidth_map,
+                              self.set.dataset.latency_map,
+                              self.set.dataset.region_map,
+                              self.set.dataset.data_transfer_cost_map)
             # TODO: Not sure if this is required? Check
             # Update the successor task’s region when it’s assigned to the selected VM
             print("CALLING REGION UPDATE AFTER WRF IS COMPLETE")
             self.nextWrf.update_taskLocation(self.PrenextTask, self.vm_queues[selectedVMind].regionid)
 
             # print(f"Process Time: {processTime}")
+            print(f"data_transfer_cost: {data_transfer_cost}")
+            self.update_VMcost_with_data_transfer_cost(data_transfer_cost)
             self.VMexecHours += processTime/3600
             self.firstvmWrfLeaveTime[selectedVMind] = self.vm_queues[selectedVMind].get_firstTaskDequeueTime()  # return currunt timestap on this machine
-            self.extend_specific_VM(selectedVMind) 
+            self.extend_specific_VM(selectedVMind)
 
         # ---2) Dequeue nextTask
         if self.isDequeue:      # True: the nextTask should be popped out 
@@ -556,6 +560,10 @@ class cloud_simulator(object):
         # print("Episode VMCost:", self.VMcost)
         # print("Episode VMrentHours:", self.VMrentHours)
         # print("VM Location:", (self.set.dataset.vm_basefee[region_id]))
+
+    def update_VMcost_with_data_transfer_cost(self, data_transfer_cost):
+        print(f"Data Transfer Cost to add: {data_transfer_cost}")
+        self.VMcost += data_transfer_cost
 
     def calculate_penalty(self, app, respTime):
         appID = app.get_appID()
