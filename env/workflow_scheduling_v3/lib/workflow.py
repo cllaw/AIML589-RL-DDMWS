@@ -190,6 +190,10 @@ class Workflow:
         total_communication_delay = 0  # all applicable delays from sucessor tasks
         # need to update the successor task enqueue times with new ready_time
         for successor in successors:
+            # Ensure enqueueTime for successor is initialized
+            if successor not in self.enqueueTime:
+                self.enqueueTime[successor] = 0  # Initialize if not already set
+
             # In DDMWS we estimate the datasize in bits of a task based on its processing time
             dataSize_mb = self.get_taskProcessTime(task) * data_scaling_factor  # Data size in MB
             dataSize_bits = dataSize_mb * 8000000  # Convert MB to bits
@@ -214,8 +218,14 @@ class Workflow:
 
                 # adding communication delay to execution time and the new enqueue time of the successor tasks
                 self.update_executeTime(temp_successor + communication_delay, successor)
-                self.update_enqueueTime(task_enqueue_time + communication_delay, successor, vm_id)
+
+                # update enqueue time using max() to account for multiple predecessors
+                current_enqueue_time = self.get_enqueueTime(successor)
+                new_enqueue_time = max(current_enqueue_time, task_enqueue_time + communication_delay)
+                self.update_enqueueTime(new_enqueue_time, successor, vm_id)
+
                 print(f"Successor Task new Execution Time: {temp_successor + communication_delay}")
+                print(f"Successor Task new Enqueue Time: {new_enqueue_time}")
                 total_communication_delay += communication_delay
 
         return total_communication_delay
