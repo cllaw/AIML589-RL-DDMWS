@@ -3,6 +3,7 @@
     1. Changed reset() function, added argument: ep_num
     2. self.indEVALindex = ep_num, individual is evaluated on ep_num-th instance in on dataGen
 """
+from eval_rl import debug_mode
 
 import numpy as np
 # import pandas as pd
@@ -11,9 +12,13 @@ import math
 import os, sys, inspect, random, copy
 import gymnasium
 import torch
-
 import logging
-logging.basicConfig(level=logging.INFO)
+
+logging.basicConfig(
+    level=logging.DEBUG if debug_mode else logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -266,7 +271,7 @@ class cloud_simulator(object):
                 print('-----> wrong index:', self.uselessAllocation)
 
     def extend_specific_VM(self, VMindex):
-        print(f'Extending specific VM {VMindex}')
+        logger.debug(f'Extending specific VM {VMindex}')
         key = self.vm_queues_id[VMindex]
         maxTimeStep = max(self.vm_queues[VMindex].currentTimeStep, self.nextTimeStep)
         self.VMRemainAvaiTime[key] = self.vm_queues_rentEndTime[VMindex] - maxTimeStep - self.vm_queues[VMindex].vmQueueTime()  # has idle gap
@@ -344,11 +349,11 @@ class cloud_simulator(object):
     # Function prototype is vf_ob, ac_ob, rew, new, _ = env.step(ac)
     def step(self, action):
         # print(f"TEST ALL VMS: {self.vm_queues}")
-        print(f"TEST ALL VMS: {len(self.vm_queues)}")
-        print(f"TEST ALL VMS: {[vm.cpu for vm in self.vm_queues]}")
-        print(f"TEST ALL VMS: {[self.set.dataset.region_map[vm.regionid] for vm in self.vm_queues]}")
-        print(f"TEST ALL VMS: {self.VMRemainingTime}")
-        print(f"TEST ALL VMS: {self.VMrentInfos}")
+        logger.debug(f"TEST ALL VMS: {len(self.vm_queues)}")
+        logger.debug(f"TEST ALL VMS: {[vm.cpu for vm in self.vm_queues]}")
+        logger.debug(f"TEST ALL VMS: {[self.set.dataset.region_map[vm.regionid] for vm in self.vm_queues]}")
+        logger.debug(f"TEST ALL VMS: {self.VMRemainingTime}")
+        logger.debug(f"TEST ALL VMS: {self.VMrentInfos}")
         # print(f"TEST ALL VMS: {self.VMRemainAvaiTime}")  # Whats the difference between these?
 
         # decode the action: the index of the vm which ranges from 0 to len(self.vm_queues)+self.vmtypeNum*self.dcNum
@@ -356,7 +361,7 @@ class cloud_simulator(object):
         # maping the action to the vm_id in current VM queue
         diff = action - len(self.vm_queues)
         region_count = len(self.set.dataset.region_map)  # Number of regions available
-        print("Scheduling policy DIFF:", diff)
+        logger.debug(f"Scheduling policy DIFF: {diff}")
 
         # Negative differences spin up new VM's
         if diff > -1:  # a new VM is deployed
@@ -371,7 +376,7 @@ class cloud_simulator(object):
             region_id = diff % region_count if self.set.distributed_cloud_enabled else 0
 
             selectedVM = VM(vmid, vm_cpu, dcid, dcid, self.nextTimeStep, self.TaskRule, region_id)
-            print("New VM deployed in region:", self.set.dataset.region_map[selectedVM.regionid])
+            logger.debug(f"New VM deployed in region: {self.set.dataset.region_map[selectedVM.regionid]}")
 
             self.vm_queues.append(selectedVM)
             self.firstvmWrfLeaveTime.append(selectedVM.get_firstTaskDequeueTime())  # new VM is math.inf
@@ -413,11 +418,11 @@ class cloud_simulator(object):
             # TODO: Not sure if this is required? Check
             #  This may be required when we stop using randomly set region ids in all the sucessor tasks
             # Update the successor task’s region when it’s assigned to the selected VM
-            print("CALLING REGION UPDATE AFTER WRF IS COMPLETE")
-            self.nextWrf.update_taskLocation(self.PrenextTask, self.vm_queues[selectedVMind].regionid)
+            # logger.debug("CALLING REGION UPDATE AFTER WRF IS COMPLETE")
+            # self.nextWrf.update_taskLocation(self.PrenextTask, self.vm_queues[selectedVMind].regionid)
 
             # print(f"Process Time: {processTime}")
-            print(f"data_transfer_cost: {data_transfer_cost}")
+            logger.debug(f"data_transfer_cost: {data_transfer_cost}")
             self.update_VMcost_with_data_transfer_cost(data_transfer_cost)
             self.VMexecHours += processTime/3600
             self.firstvmWrfLeaveTime[selectedVMind] = self.vm_queues[selectedVMind].get_firstTaskDequeueTime()  # return currunt timestap on this machine
@@ -565,7 +570,7 @@ class cloud_simulator(object):
     # TODO: Isolate all source VM's to US and all successor tasks to asia and record total bits of all tasks
     #  for each workflow. Then verify if additional data transfer costs adds up vs if not distributed
     def update_VMcost_with_data_transfer_cost(self, data_transfer_cost):
-        print(f"Data Transfer Cost to add: {data_transfer_cost}")
+        logger.debug(f"Data Transfer Cost to add: {data_transfer_cost}")
         self.VMcost += data_transfer_cost
 
     def calculate_penalty(self, app, respTime):

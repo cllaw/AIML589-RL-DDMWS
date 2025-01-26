@@ -7,8 +7,18 @@ parentdir = os.path.dirname(os.path.dirname(currentdir))
 sys.path.insert(0, parentdir)
 from env.workflow_scheduling_v3.lib.simqueue import SimQueue
 # from workflow_scheduling.env.poissonSampling import one_sample_poisson
+from eval_rl import debug_mode
+
 import math
 import heapq
+import logging
+
+logging.basicConfig(
+    level=logging.DEBUG if debug_mode else logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+logger = logging.getLogger(__name__)
 
 
 class VM:
@@ -113,8 +123,8 @@ class VM:
         app.update_taskLocation(task, self.regionid)
 
         temp = app.get_taskProcessTime(task) / self.cpu
-        print(f"Original Task Process time (Size(t)): {app.get_taskProcessTime(task)}")
-        print(f"Original Task Execution Time (EXT(t)): {temp}")
+        logger.debug(f"Original Task Process time (Size(t)): {app.get_taskProcessTime(task)}")
+        logger.debug(f"Original Task Execution Time (EXT(t)): {temp}")
 
         # Latency and data transfer cost calculation for DDMWS
         communication_delay, data_transfer_cost = app.process_successor_tasks(enqueueTime, task, data_scaling_factor, self.cpu, self.vmid, self.regionid,
@@ -135,8 +145,8 @@ class VM:
             """
             self.process_task()
 
-        print(f"Task {task} complete -> Execution time: {temp}")
-        print(f"---------")
+        logger.debug(f"Task {task} complete -> Execution time: {temp}")
+        logger.debug(f"---------")
         return temp + communication_delay, data_transfer_cost
 
     def task_dequeue(self, resort=True):
@@ -163,8 +173,8 @@ class VM:
         return task, app 
 
     def process_task(self): #
-        print("-------\n")
-        print("Empty Processing App so running this:")
+        logger.debug("\n-------")
+        logger.debug("Empty Processing App so running this:")
         self.processingtask, self.processingApp = self.vmQueue.dequeue()
 
         # Pop and return the smallest item from the heap, the popped item is deleted from the heap

@@ -1,4 +1,14 @@
+from eval_rl import debug_mode
 import numpy as np
+import logging
+
+logging.basicConfig(
+    level=logging.DEBUG if debug_mode else logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+logger = logging.getLogger(__name__)
+
 
 class Workflow:
     def __init__(self, generateTime1, app, appID, originDC, time, ratio, index):
@@ -151,13 +161,13 @@ class Workflow:
         """
         region1 = self.get_taskRegion(task)
         region2 = self.get_taskRegion(successorTask)
-        print(f"Data Size (bits): {dataSize_bits}")
+        logger.debug(f"Data Size (bits): {dataSize_bits}")
 
         if region1 is not None and region2 is not None and region1 != region2:
             # convert latency ms to seconds
             communication_delay = (dataSize_bits / bandwidth_in_bits) + (latency_map[region1][region2] / 1000)
-            print(f"Adding delay of {communication_delay} seconds (s) for inter-region communication between "
-                  f"{region_map[region1]} to {region_map[region2]}")
+            logger.debug(f"Adding delay of {communication_delay} seconds (s) for inter-region communication between "
+                         f"{region_map[region1]} to {region_map[region2]}")
             return communication_delay
         return 0
 
@@ -199,8 +209,8 @@ class Workflow:
             data_transfer_cost_map: Dict of inter-region data transfer costs.
         """
         successors = self.get_allnextTask(task)
-        print(f"VM ID: {vm_id} | {cpu} vCPUs | {region_map[region_id]}")
-        print(f"Processing Task {task} {region_map[self.get_taskRegion(task)]} -> Successors: {successors}")
+        logger.debug(f"VM ID: {vm_id} | {cpu} vCPUs | {region_map[region_id]}")
+        logger.debug(f"Processing Task {task} {region_map[self.get_taskRegion(task)]} -> Successors: {successors}")
 
         total_communication_delay = 0  # all applicable delays from successor tasks
         total_data_transfer_cost = 0  # all applicable data transfer costs from source task to sucessors
@@ -221,11 +231,11 @@ class Workflow:
             #    Explore trade off between this and existing cost of SLA penalties
             # Determine which VM and region will process the successor
             self.update_taskLocation(successor, np.random.randint(2))
-            print(f"Get successor task process time: {self.get_taskProcessTime(successor)}")
+            logger.debug(f"Get successor task process time: {self.get_taskProcessTime(successor)}")
 
             temp_successor = self.get_taskProcessTime(successor) / cpu
             bandwidth_in_bits = bandwidth_map[cpu] * 1000000000  # 1 billion bits in a gigabyte
-            print(f"\nSuccessor Task Original Execution Time: {temp_successor}(s) on VM with {cpu} vCPU's")
+            logger.debug(f"\nSuccessor Task Original Execution Time: {temp_successor}(s) on VM with {cpu} vCPU's")
             communication_delay = self.calculate_communicationDelay(task,
                                                                     successor,
                                                                     dataSize_bits,
@@ -233,7 +243,7 @@ class Workflow:
                                                                     latency_map,
                                                                     region_map)
             if communication_delay > 0:  # inter region costs need to be considered
-                print("App EnqueueTime:", task_enqueue_time)
+                logger.debug(f"App EnqueueTime: {task_enqueue_time}")
                 total_data_transfer_cost += self.calculate_data_transfer_cost(dataSize_bits, region_id, data_transfer_cost_map)
 
                 # adding communication delay to execution time and the new enqueue time of the successor tasks
@@ -244,8 +254,8 @@ class Workflow:
                 new_enqueue_time = max(current_enqueue_time, task_enqueue_time + communication_delay)
                 self.update_enqueueTime(new_enqueue_time, successor, vm_id)
 
-                print(f"Successor Task new Execution Time: {temp_successor + communication_delay}")
-                print(f"Successor Task new Enqueue Time: {new_enqueue_time}")
+                logger.debug(f"Successor Task new Execution Time: {temp_successor + communication_delay}")
+                logger.debug(f"Successor Task new Enqueue Time: {new_enqueue_time}")
                 # print(f"Data Transfer costs to inter-region VM: {total_data_transfer_cost}")
                 total_communication_delay += communication_delay
 
