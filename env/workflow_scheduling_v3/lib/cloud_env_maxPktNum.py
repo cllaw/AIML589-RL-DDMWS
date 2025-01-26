@@ -411,6 +411,7 @@ class cloud_simulator(object):
                               self.set.dataset.region_map,
                               self.set.dataset.data_transfer_cost_map)
             # TODO: Not sure if this is required? Check
+            #  This may be required when we stop using randomly set region ids in all the sucessor tasks
             # Update the successor task’s region when it’s assigned to the selected VM
             print("CALLING REGION UPDATE AFTER WRF IS COMPLETE")
             self.nextWrf.update_taskLocation(self.PrenextTask, self.vm_queues[selectedVMind].regionid)
@@ -561,6 +562,8 @@ class cloud_simulator(object):
         # print("Episode VMrentHours:", self.VMrentHours)
         # print("VM Location:", (self.set.dataset.vm_basefee[region_id]))
 
+    # TODO: Isolate all source VM's to US and all successor tasks to asia and record total bits of all tasks
+    #  for each workflow. Then verify if additional data transfer costs adds up vs if not distributed
     def update_VMcost_with_data_transfer_cost(self, data_transfer_cost):
         print(f"Data Transfer Cost to add: {data_transfer_cost}")
         self.VMcost += data_transfer_cost
