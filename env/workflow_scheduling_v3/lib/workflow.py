@@ -180,7 +180,7 @@ class Workflow:
 
     def calculate_data_transfer_cost(self, data_size_bits, region_id, data_transfer_cost_map):
         """
-        Method tho calculate inter-region data transfer costs associated with a source region
+        Method to calculate inter-region data transfer costs associated with a source region
 
         Args
             data_size_bits: Float representing the approximated size in bits of the task to process

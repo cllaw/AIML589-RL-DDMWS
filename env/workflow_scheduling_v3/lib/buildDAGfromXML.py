@@ -14,18 +14,25 @@ def buildGraph(type, filename):
         xml_file.close()
     root = tree.getroot()
     for child in root:
+        print("Processing job:", {child})
         if child.tag == '{http://pegasus.isi.edu/schema/DAX}job':
             size = 0
             for p in child:
+                print(f"Processing child {p}, of size: {int(p.attrib['size'])}")
                 size += int(p.attrib['size'])
             dag.add_node(int(child.attrib['id'][2:]), processTime=float(child.attrib['runtime']) * 16, size=size)
             tot_processTime += float(child.attrib['runtime']) * 16
+            print(f"Total Process time of job {int(child.attrib['id'][2:])}: {tot_processTime}")
+            print(f"Total Size of job {int(child.attrib['id'][2:])}: {size}")
+
             # dag.add_node(child.attrib['id'], processTime=float(child.attrib['runtime'])*16, size=size)
         if child.tag == '{http://pegasus.isi.edu/schema/DAX}child':
             kid = int(child.attrib['ref'][2:])
             for p in child:
                 parent = int(p.attrib['ref'][2:])
                 dag.add_edge(parent, kid)
+
+    print(f"Total Process time for {filename}: {tot_processTime}")
     return dag, tot_processTime
 
 # # ============ testing =============
