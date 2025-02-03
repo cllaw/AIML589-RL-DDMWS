@@ -38,7 +38,7 @@ def buildGraph(type, filename):
     print(f"Total Process time for {filename}: {tot_processTime}")
 
     # Toggle to draw DAG's of each representation built as part of a list of workflows.
-    # draw_dag(dag, "workflow_dag.png")
+    draw_dag(dag, f"{filename}.png")
 
     return dag, tot_processTime
 
@@ -75,7 +75,7 @@ def draw_dag(dag, save_path=None):
     # Draw edges
     nx.draw_networkx_edges(dag, pos, edgelist=dag.edges(), edge_color='gray')
 
-    plt.title("Improved DAG Workflow Visualization")
+    plt.title("CyberShake_30")  # TODO: Add dynamic name for title
 
     if save_path:
         plt.savefig(save_path, format='png', dpi=300, bbox_inches='tight')
