@@ -424,7 +424,6 @@ class cloud_simulator(object):
             # self.nextWrf.update_taskLocation(self.PrenextTask, self.vm_queues[selectedVMind].regionid)
 
             # print(f"Process Time: {processTime}")
-            logger.debug(f"data_transfer_cost: {data_transfer_cost}")
             self.update_VMcost_with_data_transfer_cost(data_transfer_cost)
             self.VMexecHours += processTime/3600
             self.firstvmWrfLeaveTime[selectedVMind] = self.vm_queues[selectedVMind].get_firstTaskDequeueTime()  # return currunt timestap on this machine

@@ -166,7 +166,7 @@ class Workflow:
         if region1 is not None and region2 is not None and region1 != region2:
             # convert latency ms to seconds
             communication_delay = (dataSize_bits / bandwidth_in_bits) + (latency_map[region1][region2] / 1000)
-            logger.debug(f"Adding delay of {communication_delay} seconds (s) for inter-region communication between "
+            logger.debug(f"(Task {[task]} -> {successorTask}) Adding delay of {communication_delay} seconds (s) for inter-region communication between "
                          f"{region_map[region1]} to {region_map[region2]}")
             return communication_delay
         return 0
