@@ -1,12 +1,15 @@
 # assume the runtime in *.xml is the execution time on a CPU with 16 cores
 # references: Characterizing and profiling scientific workflows
 
+from networkx.drawing.nx_agraph import graphviz_layout
 import xml.etree.ElementTree as ET
 # networkx version
 import networkx as nx
+import matplotlib.pyplot as plt
 
 
 def buildGraph(type, filename):
+    print("Building DAG:", {filename})
     tot_processTime = 0
     dag = nx.DiGraph(type=type)
     with open(filename, 'rb') as xml_file:
@@ -14,15 +17,15 @@ def buildGraph(type, filename):
         xml_file.close()
     root = tree.getroot()
     for child in root:
-        print("Processing job:", {child})
+        # print("Processing job:", {child})
         if child.tag == '{http://pegasus.isi.edu/schema/DAX}job':
             size = 0
             for p in child:
-                print(f"Processing child {p}, of size: {int(p.attrib['size'])}")
+                # print(f"Processing child {p}, of size: {int(p.attrib['size'])}")
                 size += int(p.attrib['size'])
             dag.add_node(int(child.attrib['id'][2:]), processTime=float(child.attrib['runtime']) * 16, size=size)
             tot_processTime += float(child.attrib['runtime']) * 16
-            print(f"Total Process time of job {int(child.attrib['id'][2:])}: {tot_processTime}")
+            print(f"Total Process time of job {int(child.attrib['id'][2:])}: {float(child.attrib['runtime']) * 16}")
             print(f"Total Size of job {int(child.attrib['id'][2:])}: {size}")
 
             # dag.add_node(child.attrib['id'], processTime=float(child.attrib['runtime'])*16, size=size)
@@ -33,7 +36,52 @@ def buildGraph(type, filename):
                 dag.add_edge(parent, kid)
 
     print(f"Total Process time for {filename}: {tot_processTime}")
+
+    # Toggle to draw DAG's of each representation built as part of a list of workflows.
+    # draw_dag(dag, "workflow_dag.png")
+
     return dag, tot_processTime
+
+
+def draw_dag(dag, save_path=None):
+    # Generate a hierarchical layout (top-down)
+    pos = graphviz_layout(dag, prog='dot')
+    plt.figure(figsize=(12, 8))
+
+    # Create labels with node number and process time
+    node_labels = {
+        node: f"{node}\n{dag.nodes[node]['processTime']}s"
+        for node in dag.nodes()
+    }
+
+    nx.draw(
+        dag,
+        pos,
+        with_labels=False,
+        node_size=1000,
+        node_color='lightblue',
+        edge_color='gray',
+        font_size=8
+    )
+
+    nx.draw_networkx_labels(
+        dag,
+        pos,
+        labels=node_labels,
+        font_size=8,
+        font_color='black'
+    )
+
+    # Draw edges
+    nx.draw_networkx_edges(dag, pos, edgelist=dag.edges(), edge_color='gray')
+
+    plt.title("Improved DAG Workflow Visualization")
+
+    if save_path:
+        plt.savefig(save_path, format='png', dpi=300, bbox_inches='tight')
+        print(f"Graph saved to {save_path}")
+
+    plt.show()
 
 # # ============ testing =============
 # options = {

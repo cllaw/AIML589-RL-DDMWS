@@ -169,7 +169,9 @@ class cloud_simulator(object):
                                              self.usrcurrentTime[usr])
         self.remainWrfNum += 1
 
-        # print("Workflow:", wrf)
+        # Processing Task 2 us-east-1 -> Successors: [3, 5, 7, 9, 11]
+        # Task 2 (2529.6) with communication delay: 7.309
+        print("Workflow:", wrf)
 
         # add workflow deadline to the workflow
         pkt = Workflow(self.usrcurrentTime[usr], wrf, appID, usr, self.set.dataset.wsetSlowestT[appID], self.set.dueTimeCoef[usr, appID], self.wrfIndex)  # self.set.gamma / max(self.set.dataset.vmVCPU))

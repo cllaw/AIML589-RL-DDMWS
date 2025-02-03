@@ -129,6 +129,7 @@ class VM:
         # Latency and data transfer cost calculation for DDMWS
         communication_delay, data_transfer_cost = app.process_successor_tasks(enqueueTime, task, data_scaling_factor, self.cpu, self.vmid, self.regionid,
                                                                               bandwidth_map, latency_map, region_map, data_transfer_cost_map)
+        # print(f"Task {task} ({app.get_taskProcessTime(task)}) with communication delay: {communication_delay}")
 
         self.totalProcessTime += temp
         self.pendingTaskTime += temp

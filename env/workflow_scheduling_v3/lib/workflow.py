@@ -230,7 +230,7 @@ class Workflow:
             #  Suggestion: Use the region with the lowest latency / data transfer cost from the source?
             #    Explore trade off between this and existing cost of SLA penalties
             # Determine which VM and region will process the successor
-            self.update_taskLocation(successor, np.random.randint(2))
+            self.update_taskLocation(successor, 1)
             logger.debug(f"Get successor task process time: {self.get_taskProcessTime(successor)}")
 
             temp_successor = self.get_taskProcessTime(successor) / cpu
