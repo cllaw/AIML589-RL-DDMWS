@@ -1,8 +1,10 @@
+from config.base_config import BaseConfig
+from builder import Builder
 import random
 import numpy as np
 import torch
-from config.base_config import BaseConfig
-from builder import Builder
+
+debug_mode = False
 
 
 def set_seed(seed):
