@@ -407,7 +407,7 @@ class cloud_simulator(object):
             self.vm_queues_rentEndTime.append(self.vm_queues[selectedVMind].rentEndTime)
 
             self.VMrentInfos[vmid] = [vmid, vm_cpu, self.set.dataset.vm_basefee[selectedVM.regionid] * vm_cpu,
-                                      self.nextTimeStep, self.vm_queues[selectedVMind].rentEndTime]
+                                      self.nextTimeStep, self.vm_queues[selectedVMind].rentEndTime, selectedVM.regionid]
         # diff <= -1 - the action refers to an existing VM in self.vm_queues
         # The task will be scheduled on one of the currently rented VMs
         #   using the action index as the VM in vm_queues[selectedVMind]
@@ -613,10 +613,13 @@ class cloud_simulator(object):
         ob = []
 
         # ---1)task related state:
+        # Task region ID
+        task_region = self.nextWrf.processRegion[self.nextTask]  # Assuming tasks have an originDC (region ID)
+
         childNum = len(self.nextWrf.get_allnextTask(self.nextTask))  # number of child tasks
         completionRatio = self.nextWrf.get_completeTaskNum() / self.nextWrf.get_totNumofTask()  # self.nextWrf: current Wrf
         arrivalRate = np.sum(np.sum(self.notNormalized_arr_hist, axis=0), axis=0)
-        task_ob = [childNum, completionRatio]
+        task_ob = [childNum, completionRatio, task_region]
         task_ob.extend(list(copy.deepcopy(arrivalRate)))
 
         # calculate the sub-deadline for a task
