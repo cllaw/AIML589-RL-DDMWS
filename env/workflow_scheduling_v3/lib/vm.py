@@ -120,6 +120,9 @@ class VM:
             data_scaling_factor: Float used as the processing time scaling factor to data size conversion
         """
         # Update task location in the workflow
+        # TODO (Bug): This resets the current task back to the original VM region.
+        #  This causes issues when the first successor is changed to a new region and then changed back to the original
+        #  one, for the next set of successor tasks - doing latency again when it is not needed.
         app.update_taskLocation(task, self.regionid)
 
         temp = app.get_taskProcessTime(task) / self.cpu

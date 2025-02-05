@@ -162,7 +162,6 @@ class cloud_simulator(object):
         self.stat = Stats(self.set)
 
     # Generate one workflow at one time
-    # TODO: Add data transfer tasks in these workflows
     def workflow_generator(self, usr, appID):
         wrf = self.set.dataset.wset[appID]
         nextArrivalTime = one_sample_poisson(self.set.get_individual_arrival_rate(self.usrcurrentTime[usr], usr, appID),
@@ -416,7 +415,7 @@ class cloud_simulator(object):
                               self.set.dataset.region_map,
                               self.set.dataset.data_transfer_cost_map)
             # TODO: Not sure if this is required? Check
-            #  This may be required when we stop using randomly set region ids in all the sucessor tasks
+            #  This may be required when we stop using randomly set region ids in all the successor tasks
             # Update the successor task’s region when it’s assigned to the selected VM
             # logger.debug("CALLING REGION UPDATE AFTER WRF IS COMPLETE")
             # self.nextWrf.update_taskLocation(self.PrenextTask, self.vm_queues[selectedVMind].regionid)
@@ -536,7 +535,7 @@ class cloud_simulator(object):
                 done = True
 
         if done:
-            reward = -self.VMcost-self.SLApenalty
+            reward = -self.VMcost-self.SLApenalty  # TODO: incorporate LatencyPenalty here
             self.episode_info = {"VM_execHour": self.VMexecHours, "VM_totHour": self.VMrentHours,  # VM_totHour is the total rent hours of all VMs
                                  "VM_cost": self.VMcost, "SLA_penalty": self.SLApenalty,
                                  "missDeadlineNum": self.missDeadlineNum}
@@ -559,9 +558,9 @@ class cloud_simulator(object):
             temp = 1
         else:
             temp = 0
-        # print("VM Region ID:", region_id)
         self.VMcost += temp * self.set.dataset.vm_basefee[region_id] * cpu
         self.VMrentHours += temp
+        # print("VM Region ID:", region_id)
         # print("Episode cpu:", cpu)
         # print("Episode VMCost:", self.VMcost)
         # print("Episode VMrentHours:", self.VMrentHours)
@@ -582,6 +581,10 @@ class cloud_simulator(object):
             self.missDeadlineNum += 1
             return 1+self.set.dataset.wsetBeta[appID]*(respTime-threshold)/3600
 
+    def calculate_latency_penalty(self):
+        # Also add this to the reward function
+        pass
+
     def state_info_construct(self):
         '''
         states:
@@ -598,7 +601,10 @@ class cloud_simulator(object):
 
         # ---1)task related state:
         # Task region ID
+        print("All successors:", self.nextWrf.get_allnextTask(self.nextTask))
+        print("Test VM Id", self.nextWrf.get_allnextTask(self.nextTask))
         task_region = self.nextWrf.processRegion[self.nextTask]  # Assuming tasks have an originDC (region ID)
+        print("Verify task region", {task_region})
 
         childNum = len(self.nextWrf.get_allnextTask(self.nextTask))  # number of child tasks
         completionRatio = self.nextWrf.get_completeTaskNum() / self.nextWrf.get_totNumofTask()  # self.nextWrf: current Wrf
@@ -616,6 +622,8 @@ class cloud_simulator(object):
 
         # ---2)vm related state:
         for vm_ind in range(len(self.vm_queues)):  # for currently rent VM
+            vm_region_id = self.vm_queues[vm_ind].regionid  # Assuming each VM has a region ID
+
             task_est_startTime = self.vm_queues[vm_ind].vmLatestTime()  # get_taskWaitingTime(self.nextWrf,self.nextTask)   # relative time
             task_exe_time = self.nextWrf.get_taskProcessTime(self.nextTask) / self.vm_queues_cpu[vm_ind]
             task_est_finishTime = task_exe_time + task_est_startTime
@@ -636,7 +644,7 @@ class cloud_simulator(object):
                 meetDeadline = 0
                 extraCost += 1 + self.set.dataset.wsetBeta[self.nextWrf.get_appID()] * (task_exe_time + self.nextTimeStep - self.appSubDeadline[self.nextWrf][self.nextTask])  # add SLA penalty
             ob.append([])
-            ob[-1] = task_ob + [meetDeadline, extraCost, vm_remainTime]
+            ob[-1] = task_ob + [meetDeadline, extraCost, vm_remainTime, vm_region_id]
 
         for dcind in range(self.dcNum):  # for new VM that can be rented
             # TODO: Find out what ob does for evaluation (if anything)
@@ -655,7 +663,7 @@ class cloud_simulator(object):
                 ob.append([])
                 # print(f"Extra Cost: {extraCost} for VM ({cpuNum} CPU) in region: {self.set.dataset.region_map[dcind]}")
                 # print(f"VM remaining time: {vm_remainTime}")
-                ob[-1] = task_ob + [meetDeadline, extraCost, vm_remainTime]
+                ob[-1] = task_ob + [meetDeadline, extraCost, vm_remainTime, dcind]
 
         # if a VM is the best fit, i.e., min(extraCost)
         temp = np.array(ob)
