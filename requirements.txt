@@ -3,3 +3,4 @@ torch
 PyYAML
 pandas
 gymnasium
+scipy

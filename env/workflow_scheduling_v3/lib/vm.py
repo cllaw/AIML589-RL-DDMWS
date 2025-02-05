@@ -1,16 +1,28 @@
 # import numpy as np
 import os, sys, inspect
+import numpy as np
+
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(os.path.dirname(currentdir))
 sys.path.insert(0, parentdir)
 from env.workflow_scheduling_v3.lib.simqueue import SimQueue
 # from workflow_scheduling.env.poissonSampling import one_sample_poisson
+from eval_rl import debug_mode
+
 import math
 import heapq
+import logging
+
+logging.basicConfig(
+    level=logging.DEBUG if debug_mode else logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+logger = logging.getLogger(__name__)
 
 
 class VM:
-    def __init__(self, id, cpu, dcind, abind, t, rule): 
+    def __init__(self, id, cpu, dcind, abind, t, rule, region_id):
         ##self, vmID, vmCPU, dcID, dataset.datacenter[dcid][0], self.nextTimeStep, task_selection_rule
         self.vmid = id
         self.cpu = cpu
@@ -27,10 +39,12 @@ class VM:
         self.pendingTaskNum = 0
         self.taskSelectRule = rule
         self.currentQlen = 0
+        self.regionid = region_id  # DDMWS VM creation step with distributed cloud needs to hold region information
 
     def get_utilization(self, app, task):
         numOfTask = self.totalProcessTime / (app.get_taskProcessTime(task)/self.cpu)
-        util = numOfTask/self.get_capacity(app, task) 
+        util = numOfTask/self.get_capacity(app, task)
+        print(f"Capacity of task {task}: {self.get_capacity(app, task)}")
         return util  ## == self.totalProcessTime / 60*60
 
     def get_capacity(self, app, task):
@@ -91,10 +105,33 @@ class VM:
         else:
             return self.vmQueue.qlen()+1  # 1 is needed
 
-    def task_enqueue(self, task, enqueueTime, app, resort=False):
-        temp = app.get_taskProcessTime(task)/self.cpu
+    def task_enqueue(self, task, enqueueTime, app, bandwidth_map, latency_map, region_map, data_transfer_cost_map,
+                     resort=False, data_scaling_factor=0.5):
+        """
+        Method to enqueue tasks - when a task is placed into a VM for processing
+
+        Args:
+            task: the current task to be processed on a workflow
+            enqueueTime: the enqueue time of the current task
+            bandwidth_map: Dict of bandwidth values for each vCPU VM Type.
+            latency_map: Dict of inter-region communication delays.
+            region_map: Dict of region_ids to region names.
+            data_transfer_cost_map: Dict of inter-region data transfer costs.
+            data_scaling_factor: Float used as the processing time scaling factor to data size conversion
+        """
+        # Update task location in the workflow
+        app.update_taskLocation(task, self.regionid)
+
+        temp = app.get_taskProcessTime(task) / self.cpu
+        logger.debug(f"Original Task Process time (Size(t)): {app.get_taskProcessTime(task)}")
+        logger.debug(f"Original Task Execution Time (EXT(t)): {temp}")
+
+        # Latency and data transfer cost calculation for DDMWS
+        communication_delay, data_transfer_cost = app.process_successor_tasks(enqueueTime, task, data_scaling_factor, self.cpu, self.vmid, self.regionid,
+                                                                              bandwidth_map, latency_map, region_map, data_transfer_cost_map)
+
         self.totalProcessTime += temp
-        self.pendingTaskTime += temp        
+        self.pendingTaskTime += temp
         self.currentQlen = self.get_pendingTaskNum()
 
         app.update_executeTime(temp, task)
@@ -102,9 +139,15 @@ class VM:
         self.vmQueue.enqueue(app, enqueueTime, task, self.vmid, enqueueTime) # last is priority
 
         if self.processingApp is None:
+            """
+            self.processingApp is an attribute of the VM class that represents the task currently being processed by this VM.
+            If self.processingApp is None, it means the VM is idle and not working on any task.
+            """
             self.process_task()
 
-        return temp
+        logger.debug(f"Task {task} complete -> Execution time: {temp}")
+        logger.debug(f"---------")
+        return temp + communication_delay, data_transfer_cost
 
     def task_dequeue(self, resort=True):
         task, app = self.processingtask, self.processingApp
@@ -130,22 +173,25 @@ class VM:
         return task, app 
 
     def process_task(self): #
-        self.processingtask, self.processingApp = self.vmQueue.dequeue() 
-            # Pop and return the smallest item from the heap, the popped item is deleted from the heap
+        logger.debug("\n-------")
+        logger.debug("Empty Processing App so running this:")
+        self.processingtask, self.processingApp = self.vmQueue.dequeue()
+
+        # Pop and return the smallest item from the heap, the popped item is deleted from the heap
         enqueueTime = self.processingApp.get_enqueueTime(self.processingtask)
         processTime = self.processingApp.get_executeTime(self.processingtask)
 
-        taskStratTime = max(enqueueTime , self.currentTimeStep)
-        leaveTime = taskStratTime +processTime
+        taskStratTime = max(enqueueTime, self.currentTimeStep)
+        leaveTime = taskStratTime + processTime
 
         self.processingApp.update_enqueueTime(taskStratTime, self.processingtask, self.vmid)
         self.pendingTaskTime -= processTime
         self.processingApp.update_pendingIndexVM(self.processingtask, self.pendingTaskNum)
-        self.pendingTaskNum+=1
+        self.pendingTaskNum += 1
         self.currentTimeStep = leaveTime
 
     def vmQueueTime(self): 
-        return max(round(self.pendingTaskTime,3), 0)
+        return max(round(self.pendingTaskTime, 3), 0)
 
     def vmTotalTime(self): 
         return self.totalProcessTime

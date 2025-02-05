@@ -10,6 +10,7 @@ class Builder:
         self.env = None
         self.policy = None
         self.optim = None
+        self.distributed_cloud_enabled = None  # Build the simulator using multi region distributed VM's
 
         self.testMatrix = testMatrix
 
@@ -21,6 +22,8 @@ class Builder:
         # self.config.config['yaml-config']["policy"]["action_num"] = get_action_num(env) # based on the environment, generate the action num to build policy
         policy = build_policy(self.config.config['yaml-config']["policy"])
         optim = build_optim(self.config.config['yaml-config']["optim"])
+
+        print("Distributed Cloud?", self.config.config['yaml-config']["env"]["distributed_cloud_enabled"])
         return AssembleRL(self.config, env, policy, optim)
 
 

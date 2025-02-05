@@ -31,7 +31,8 @@ class WFEnv(cloud_simulator):
         # Setup
         config = {"traffic pattern": args['traffic_pattern'], "seed": args['seed'], "gamma": args['gamma'],
                   "envid": 0, "wf_size": args["wf_size"], "wf_num": args["wf_num"],
-                  "trainSet": train_dataset, 'testSet': test_dataset}
+                  "trainSet": train_dataset, 'testSet': test_dataset,
+                  "distributed_cloud_enabled": args["distributed_cloud_enabled"]}
         super(WFEnv, self).__init__(config)
         self.name = name
 

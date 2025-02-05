@@ -1,9 +1,9 @@
-import gym
+import gymnasium
 
 
 class GymEnv:
     def __init__(self, name, args):
-        self.env = gym.make(name)
+        self.env = gymnasium.make(name)
 
         self.name = name
         self.step_curr = 0
@@ -55,7 +55,7 @@ class GymEnv:
         self.env.close()
 
 
-class LunarLanderPOMDP(gym.ObservationWrapper):
+class LunarLanderPOMDP(gymnasium.ObservationWrapper):
     def __init__(self, env):
         super().__init__(env)
 
@@ -68,7 +68,7 @@ class LunarLanderPOMDP(gym.ObservationWrapper):
         return obs
 
 
-class CartPolePOMDP(gym.ObservationWrapper):
+class CartPolePOMDP(gymnasium.ObservationWrapper):
     def __init__(self, env):
         super().__init__(env)
 

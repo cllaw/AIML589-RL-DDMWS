@@ -28,7 +28,7 @@ class dataset:
             dag, wsetProcessTime = buildGraph(f'{i}', parentdir + f'/workflow_scheduling_v3/dax/{j}.xml')
 
             # Ya added: print the detailed info of dag
-            # import networkx as nx
+            import networkx as nx
             # adj_matrix = nx.adjacency_matrix(dag).todense()
             # print(adj_matrix)
             # for node, data in dag.nodes(data=True):
@@ -47,9 +47,65 @@ class dataset:
             self.wsetBeta.append(2)
 
         self.vmVCPU = [2, 4, 8, 16, 32, 48]  # EC2 m5
+        # self.vmVCPU = [2]  # EC2 m5
 
         self.request = np.array([1]) * 0.01  # Poisson distribution: the default is 0.01, lets test 10.0 1.0 and 0.1
 
-        self.datacenter = [(0, 'East, USA', 0.096)]
+        # Base VM cost per CPU per region
+        # Min CPU's provided from services is usually 2, so we define the base fee as this divide by 2 for 1 CPU
+        # Assumption: extra costs only takes the cheapest, smallest VM into account.
+        # Keys are region_ids
+        self.vm_basefee = {
+            0: 0.048,  # East, USA, N.Virginia
+            1: 0.06,   # Southeast, Australia, Sydney
+            2: 0.0555  # West, Europe, London
+        }
 
-        self.vmPrice = {2: 0.096, 4: 0.192, 8: 0.384, 16: 0.768, 32: 1.536, 48: 2.304}
+        # Inter-region communication delays
+        self.region_map = {
+            0: "us-east-1",
+            1: "ap-southeast-2",
+            2: "eu-west-2"
+        }
+
+        # Bandwidth values for each vCPU VM Type in Gigbits per second (Gbps)
+        self.bandwidth_map = {
+            2: 8,  # Assume these are 8 as documentation says "Up to 10 Gbps"
+            4: 8,
+            8: 8,
+            16: 8,
+            32: 10,
+            48: 12
+        }
+
+        # TODO: Incorporate these into EXECUTION_TIME calculation
+        # Data Communication transmittion time - amount of data + latency
+        # amount of data transferred between dependent tasks
+        # D / bandwidth (bandwitdh for intercontinental connections)
+
+        # Data transfer, Latency. Cross check with the simulator that the total cost/time accounts for this
+        # Can do this by hand, and emulating the code.
+
+        # Inter-region communication delays in milliseconds (ms)
+        self.latency_map = {
+            0: {  # From N. Virginia
+                1: 197,  # Latency to Sydney
+                2: 75  # Latency to London
+            },
+            1: {  # From Sydney
+                0: 197,  # Latency to N. Virginia
+                2: 264  # Latency to London
+            },
+            2: {  # From London
+                0: 75,  # Latency to N. Virginia
+                1: 264  # Latency to Sydney
+            }
+        }
+
+        # Inter-region data transfer costs per GB
+        self.data_transfer_cost_map = {
+            0: 0.02,
+            1: 0.098,
+            2: 0.02
+        }
+
