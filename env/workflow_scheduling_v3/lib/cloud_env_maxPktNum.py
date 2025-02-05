@@ -168,13 +168,28 @@ class cloud_simulator(object):
         nextArrivalTime = one_sample_poisson(self.set.get_individual_arrival_rate(self.usrcurrentTime[usr], usr, appID),
                                              self.usrcurrentTime[usr])
         self.remainWrfNum += 1
-
-        # Processing Task 2 us-east-1 -> Successors: [3, 5, 7, 9, 11]
-        # Task 2 (2529.6) with communication delay: 7.309
-        print("Workflow:", wrf)
+        # print("Workflow:", wrf)
 
         # add workflow deadline to the workflow
         pkt = Workflow(self.usrcurrentTime[usr], wrf, appID, usr, self.set.dataset.wsetSlowestT[appID], self.set.dueTimeCoef[usr, appID], self.wrfIndex)  # self.set.gamma / max(self.set.dataset.vmVCPU))
+
+        # In DDMWS we use a new method to assign region_ids to tasks in Workflows via their
+        #   execution VM's based on some heuristic
+        # If this method is not used, each task and their sucessors are assigned a randon region_id
+        print("How many tasks in workflow of :", pkt.get_allTask())
+        for task in pkt.get_allTask():  # Assuming get_all_tasks() returns all tasks in the workflow
+            if task not in pkt.processRegion:
+                # Assign region based on dataset mapping
+                # if self.nextTask in self.workflow_dataset_map:
+                #     dataset = self.workflow_dataset_map[self.nextTask]
+                #     self.processRegion[self.nextTask] = self.dataset_region_map[dataset]
+                # else:
+                #     # Fallback: Random assignment if no mapping exists (only for testing)
+                random_region = np.random.choice(3) if self.set.distributed_cloud_enabled else 0
+                pkt.processRegion[task] = random_region  # Update task location in the workflow
+                pkt.update_taskLocation(task, random_region)  # Update task information on the task level
+
+        print("Blah", pkt.processRegion)
         self.usr_queues[usr].enqueue(pkt, self.usrcurrentTime[usr], None, usr, 0)  # None means that workflow has not started yet
         self.usrcurrentTime[usr] = nextArrivalTime
         self.totWrfNum -= 1
@@ -375,9 +390,18 @@ class cloud_simulator(object):
 
             # Region Selection Rule
             # Assign region ID based on diff and the number of regions if distributed cloud setting is enabled
-            region_id = diff % region_count if self.set.distributed_cloud_enabled else 0
+            # region_id = diff % region_count if self.set.distributed_cloud_enabled else 0
+
+            # Region Selection Rule
+            # Match the region ID of the task being executed
+            if self.nextTask in self.nextWrf.processRegion:
+                region_id = self.nextWrf.processRegion[self.nextTask]  # Match VM region to task region
+            else:
+                region_id = 0  # Default to region 0 if no region is set
 
             selectedVM = VM(vmid, vm_cpu, dcid, dcid, self.nextTimeStep, self.TaskRule, region_id)
+            logger.debug(f"Task: {self.nextTask}")
+            logger.debug(f"Whole Region: {self.nextWrf.processRegion}")
             logger.debug(f"New VM deployed in region: {self.set.dataset.region_map[selectedVM.regionid]}")
 
             self.vm_queues.append(selectedVM)

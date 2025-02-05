@@ -225,12 +225,9 @@ class Workflow:
             dataSize_mb = self.get_taskProcessTime(task) * data_scaling_factor  # Data size in MB
             dataSize_bits = dataSize_mb * 8000000  # Convert MB to bits
 
-            # TODO: This shouldnt be in here, find way to simulate this as part of the scheduling policy
-            #  There should be a scheduling policy that selects a particular VM and you just use the location in it
-            #  Suggestion: Use the region with the lowest latency / data transfer cost from the source?
-            #    Explore trade off between this and existing cost of SLA penalties
             # Determine which VM and region will process the successor
-            self.update_taskLocation(successor, 1)
+            print(f"Test predecessor task {task} region: {self.get_taskRegion(task)} | "
+                  f"successor {successor} region: {self.get_taskRegion(successor)}")
             logger.debug(f"Get successor task process time: {self.get_taskProcessTime(successor)}")
 
             temp_successor = self.get_taskProcessTime(successor) / cpu

@@ -25,8 +25,8 @@ def buildGraph(type, filename):
                 size += int(p.attrib['size'])
             dag.add_node(int(child.attrib['id'][2:]), processTime=float(child.attrib['runtime']) * 16, size=size)
             tot_processTime += float(child.attrib['runtime']) * 16
-            print(f"Total Process time of job {int(child.attrib['id'][2:])}: {float(child.attrib['runtime']) * 16}")
-            print(f"Total Size of job {int(child.attrib['id'][2:])}: {size}")
+            # print(f"Total Process time of job {int(child.attrib['id'][2:])}: {float(child.attrib['runtime']) * 16}")
+            # print(f"Total Size of job {int(child.attrib['id'][2:])}: {size}")
 
             # dag.add_node(child.attrib['id'], processTime=float(child.attrib['runtime'])*16, size=size)
         if child.tag == '{http://pegasus.isi.edu/schema/DAX}child':
@@ -35,10 +35,10 @@ def buildGraph(type, filename):
                 parent = int(p.attrib['ref'][2:])
                 dag.add_edge(parent, kid)
 
-    print(f"Total Process time for {filename}: {tot_processTime}")
+    # print(f"Total Process time for {filename}: {tot_processTime}")
 
     # Toggle to draw DAG's of each representation built as part of a list of workflows.
-    draw_dag(dag, f"{filename}.png")
+    # draw_dag(dag, f"{filename}.png")
 
     return dag, tot_processTime
 
@@ -75,7 +75,7 @@ def draw_dag(dag, save_path=None):
     # Draw edges
     nx.draw_networkx_edges(dag, pos, edgelist=dag.edges(), edge_color='gray')
 
-    plt.title("CyberShake_30")  # TODO: Add dynamic name for title
+    plt.title("Sipht_30")  # TODO: Add dynamic name for title
 
     if save_path:
         plt.savefig(save_path, format='png', dpi=300, bbox_inches='tight')
