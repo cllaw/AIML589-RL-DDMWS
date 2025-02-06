@@ -295,10 +295,10 @@ class cloud_simulator(object):
             self.update_VMcost(self.vm_queues[VMindex].regionid, self.vm_queues[VMindex].cpu, True)
             self.VMrentInfos[key] = self.VMrentInfos[key][:4] + [self.vm_queues[VMindex].rentEndTime]  # self.VMrentInfos[key][-1]+self.set.dataset.vmPrice[self.vm_queues[VMindex].cpu]]
 
-    def record_a_completed_workflow(self, ddl_penalty):
+    def record_a_completed_workflow(self, ddl_penalty, latency_penalty):
         if self.set.is_wf_trace_record:        
             Workflow_Infos = [self.nextWrf.appArivalIndex, self.nextWrf.appID,
-                              self.nextWrf.generateTime, self.nextTimeStep, self.nextWrf.deadlineTime, ddl_penalty]
+                              self.nextWrf.generateTime, self.nextTimeStep, self.nextWrf.deadlineTime, ddl_penalty, latency_penalty]
 
             for task in range(len(self.nextWrf.executeTime)):
                 Task_Infos = [task, self.nextWrf.app.nodes[task]['processTime'], self.nextWrf.executeTime[task],
@@ -467,7 +467,7 @@ class cloud_simulator(object):
         if len(temp_Children_finishTask) > 0:
             self.dispatchParallelTaskNum += 1
 
-        while True:
+        while True:  # Handle already scheduled tasks
 
             # self.nextWrf is completed
             while len(temp_Children_finishTask) == 0:  # self.finishTask is the final task of self.nextWrf
@@ -489,15 +489,34 @@ class cloud_simulator(object):
                     self.SLApenalty += ddl_penalty
 
                     # Chuan added for DDMWS
+                    # TODO: Need to find dynamic way of getting the correct vCPU of the VM used
+                    #   Verify if this way of finding vCPUs is OK - as it is only used for latency considerations atm
+                    # Compute the average execution time across all tasks
+                    task_exec_times = [app.get_taskProcessTime(t) for t in self.nextWrf.get_allTask()]
+                    avg_exec_time = np.mean(task_exec_times) if task_exec_times else 1  # Avoid division by zero
+
                     # Calculate the latency penalty for inter-region communication.
                     for task in self.nextWrf.get_allTask():  # Iterate through tasks in the workflow
                         total_task_latency_penalty = 0
                         for successor in self.nextWrf.get_allnextTask(task):  # Get successor tasks
                             dataSize_bits = self.nextWrf.calculate_dataSize(app.get_taskProcessTime(task),
                                                                             self.set.dataset.dataScalingFactor)  # Data size for communication
-                            # print("Is this correct:", self.vm_queues[selectedVMind].get_cpu())
-                            # TODO: Need to find dynamic way of getting the correct vCPU of the VM used
-                            bandwidth_in_bits = self.set.dataset.bandwidth_map[8] * 1000000000   # Bandwidth in bits per second
+
+                            # Task based: Choose vCPU based on task execution time
+                            task_exec_time = app.get_taskProcessTime(task)
+
+                            if task_exec_time < 0.5 * avg_exec_time:
+                                vm_vcpu = min(self.set.dataset.vmVCPU)  # Smallest vCPU
+                            elif task_exec_time < avg_exec_time:
+                                vm_vcpu = sorted(self.set.dataset.vmVCPU)[
+                                    len(self.set.dataset.vmVCPU) // 2]  # Medium vCPU
+                            else:
+                                vm_vcpu = max(self.set.dataset.vmVCPU)  # Largest vCPU
+
+                            print(
+                                f"Task {task} assigned vCPU: {vm_vcpu} (Exec Time: {task_exec_time}, Avg: {avg_exec_time})")
+
+                            bandwidth_in_bits = self.set.dataset.bandwidth_map[vm_vcpu] * 1000000000   # Bandwidth in bits per second
                             communication_delay = app.calculate_communicationDelay(
                                 task,
                                 successor,
@@ -514,7 +533,7 @@ class cloud_simulator(object):
                         logger.debug(f"Total Latency penalty for task {task}: {total_task_latency_penalty}")
                         self.SLApenalty += total_task_latency_penalty  # Add latency penalty to SLA penalties
 
-                    self.record_a_completed_workflow(ddl_penalty)
+                    self.record_a_completed_workflow(ddl_penalty, total_task_latency_penalty)
                     del app, self.nextWrf
 
                 self.get_nextTimeStep()
