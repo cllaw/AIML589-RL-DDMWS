@@ -106,7 +106,7 @@ class VM:
             return self.vmQueue.qlen()+1  # 1 is needed
 
     def task_enqueue(self, task, enqueueTime, app, bandwidth_map, latency_map, region_map, data_transfer_cost_map,
-                     resort=False, data_scaling_factor=0.5):
+                     data_scaling_factor, resort=False):
         """
         Method to enqueue tasks - when a task is placed into a VM for processing
 

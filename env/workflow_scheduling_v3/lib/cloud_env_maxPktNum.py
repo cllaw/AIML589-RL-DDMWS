@@ -432,7 +432,8 @@ class cloud_simulator(object):
                               self.set.dataset.bandwidth_map,
                               self.set.dataset.latency_map,
                               self.set.dataset.region_map,
-                              self.set.dataset.data_transfer_cost_map)
+                              self.set.dataset.data_transfer_cost_map,
+                              self.set.dataset.dataScalingFactor)
             # TODO: Not sure if this is required? Check
             #  This may be required when we stop using randomly set region ids in all the successor tasks
             # Update the successor task’s region when it’s assigned to the selected VM
@@ -483,8 +484,36 @@ class cloud_simulator(object):
                     self.usr_received_wrfNum[app.get_originDC()][app.get_appID()] += 1                    
                     self.completedWF += 1
                     self.remainWrfNum -= 1
+
                     ddl_penalty = self.calculate_penalty(app, respTime)
                     self.SLApenalty += ddl_penalty
+
+                    # Chuan added for DDMWS
+                    # Calculate the latency penalty for inter-region communication.
+                    for task in self.nextWrf.get_allTask():  # Iterate through tasks in the workflow
+                        total_task_latency_penalty = 0
+                        for successor in self.nextWrf.get_allnextTask(task):  # Get successor tasks
+                            dataSize_bits = self.nextWrf.calculate_dataSize(app.get_taskProcessTime(task),
+                                                                            self.set.dataset.dataScalingFactor)  # Data size for communication
+                            # print("Is this correct:", self.vm_queues[selectedVMind].get_cpu())
+                            # TODO: Need to find dynamic way of getting the correct vCPU of the VM used
+                            bandwidth_in_bits = self.set.dataset.bandwidth_map[8] * 1000000000   # Bandwidth in bits per second
+                            communication_delay = app.calculate_communicationDelay(
+                                task,
+                                successor,
+                                dataSize_bits,
+                                bandwidth_in_bits,
+                                self.set.dataset.latency_map,
+                                self.set.dataset.region_map
+                            )
+
+                            latency_penalty = communication_delay * self.set.dataset.latencyPenaltyFactor  # Scale the penalty
+                            logger.debug(f"Latency Penalty: {latency_penalty}")
+                            total_task_latency_penalty += latency_penalty
+                        # print(f"App ID: {self.nextWrf.get_appID()}")
+                        logger.debug(f"Total Latency penalty for task {task}: {total_task_latency_penalty}")
+                        self.SLApenalty += total_task_latency_penalty  # Add latency penalty to SLA penalties
+
                     self.record_a_completed_workflow(ddl_penalty)
                     del app, self.nextWrf
 
@@ -553,7 +582,7 @@ class cloud_simulator(object):
                 done = True
 
         if done:
-            reward = -self.VMcost-self.SLApenalty  # TODO: incorporate LatencyPenalty here
+            reward = -self.VMcost-self.SLApenalty  # In DDMWS, the latency penalty is incorporated into the SLA Penalty
             self.episode_info = {"VM_execHour": self.VMexecHours, "VM_totHour": self.VMrentHours,  # VM_totHour is the total rent hours of all VMs
                                  "VM_cost": self.VMcost, "SLA_penalty": self.SLApenalty,
                                  "missDeadlineNum": self.missDeadlineNum}
@@ -598,10 +627,6 @@ class cloud_simulator(object):
         else:
             self.missDeadlineNum += 1
             return 1+self.set.dataset.wsetBeta[appID]*(respTime-threshold)/3600
-
-    def calculate_latency_penalty(self):
-        # Also add this to the reward function
-        pass
 
     def state_info_construct(self):
         '''

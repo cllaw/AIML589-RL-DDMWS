@@ -149,6 +149,11 @@ class Workflow:
     def update_taskLocation(self, task, vm_region_id):
         self.processRegion[task] = vm_region_id
 
+    def calculate_dataSize(self, process_time, data_scaling_factor):
+        dataSize_mb = process_time * data_scaling_factor  # Data size in MB
+        dataSize_bits = dataSize_mb * 8000000  # Convert MB to bits
+        return dataSize_bits
+
     def calculate_communicationDelay(self, task, successorTask, dataSize_bits, bandwidth_in_bits, latency_map, region_map):
         """
         Calculate communication delay between tasks processed in different regions.
@@ -225,8 +230,7 @@ class Workflow:
                 self.enqueueTime[successor] = 0  # Initialize if not already set
 
             # In DDMWS we estimate the datasize in bits of a task based on its processing time
-            dataSize_mb = self.get_taskProcessTime(task) * data_scaling_factor  # Data size in MB
-            dataSize_bits = dataSize_mb * 8000000  # Convert MB to bits
+            dataSize_bits = self.calculate_dataSize(self.get_taskProcessTime(task), data_scaling_factor)
 
             # Determine which VM and region will process the successor
             # print(f"Test predecessor task {task} region: {self.get_taskRegion(task)} | "
