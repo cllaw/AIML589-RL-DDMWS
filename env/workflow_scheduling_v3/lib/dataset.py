@@ -19,13 +19,22 @@ dataset_dict = {'S': dataset_30, 'M': dataset_50, 'L': dataset_100, 'XL': datase
 
 
 class dataset:
-    def __init__(self, arg):
+    def __init__(self, arg, distributed_cloud_enabled):
         if arg not in dataset_dict:
             raise NotImplementedError
+
+        # Inter-region communication delays
+        self.region_map = {
+            0: "us-east-1",
+            1: "ap-southeast-2",
+            2: "eu-west-2"
+        }
+
         self.wset = []
         self.wsetTotProcessTime = []
         for i, j in zip(['CyberShake'], dataset_dict[arg]):
-            dag, wsetProcessTime = buildGraph(f'{i}', parentdir + f'/workflow_scheduling_v3/dax/{j}.xml')
+            dag, wsetProcessTime = buildGraph(f'{i}', parentdir + f'/workflow_scheduling_v3/dax/{j}.xml',
+                                              distributed_cloud_enabled, self.region_map)
 
             # Ya added: print the detailed info of dag
             import networkx as nx
@@ -59,13 +68,6 @@ class dataset:
             0: 0.048,  # East, USA, N.Virginia
             1: 0.06,   # Southeast, Australia, Sydney
             2: 0.0555  # West, Europe, London
-        }
-
-        # Inter-region communication delays
-        self.region_map = {
-            0: "us-east-1",
-            1: "ap-southeast-2",
-            2: "eu-west-2"
         }
 
         # Bandwidth values for each vCPU VM Type in Gigbits per second (Gbps)

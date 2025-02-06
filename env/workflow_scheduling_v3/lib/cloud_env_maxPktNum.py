@@ -162,7 +162,6 @@ class cloud_simulator(object):
         self.stat = Stats(self.set)
 
     # Generate one workflow at one time
-    # TODO: Add data transfer tasks in these workflows
     def workflow_generator(self, usr, appID):
         wrf = self.set.dataset.wset[appID]
         nextArrivalTime = one_sample_poisson(self.set.get_individual_arrival_rate(self.usrcurrentTime[usr], usr, appID),
@@ -179,15 +178,8 @@ class cloud_simulator(object):
         print("How many tasks in workflow of :", pkt.get_allTask())
         for task in pkt.get_allTask():  # Assuming get_all_tasks() returns all tasks in the workflow
             if task not in pkt.processRegion:
-                # Assign region based on dataset mapping
-                # if self.nextTask in self.workflow_dataset_map:
-                #     dataset = self.workflow_dataset_map[self.nextTask]
-                #     self.processRegion[self.nextTask] = self.dataset_region_map[dataset]
-                # else:
-                #     # Fallback: Random assignment if no mapping exists (only for testing)
-                random_region = np.random.choice(3) if self.set.distributed_cloud_enabled else 0
-                pkt.processRegion[task] = random_region  # Update task location in the workflow
-                pkt.update_taskLocation(task, random_region)  # Update task information on the task level
+                region_id = pkt.get_task_regionId(task)
+                pkt.update_taskLocation(task, region_id)  # Update task information on the task level in the workflow
 
         print("Blah", pkt.processRegion)
         self.usr_queues[usr].enqueue(pkt, self.usrcurrentTime[usr], None, usr, 0)  # None means that workflow has not started yet

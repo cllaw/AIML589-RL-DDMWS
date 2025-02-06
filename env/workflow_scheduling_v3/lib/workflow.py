@@ -108,6 +108,9 @@ class Workflow:
         return self.app.nodes[task]['processTime']  # networkx
         # return self.app.vs[task]['processTime']  # igraph
 
+    def get_task_regionId(self, task):
+        return self.app.nodes[task]['regionId']
+
     # TODO: Currently each task is an object as part of a DAG data structure.
     #  Consider how you will add source region location to a each task in a workflow
     #  What would constitute as inter region data transfer?

@@ -48,7 +48,7 @@ class Setting(object):
         self.gamma = args["gamma"]
         self.pkt_trace_sample_freq = 10
         self.VMpayInterval = 60 * 60
-        self.dataset = dataset(args["wf_size"])
+        self.dataset = dataset(args["wf_size"], args['distributed_cloud_enabled'])
 
         # For DDMWS, add option to run simulation in distributed setting
         self.distributed_cloud_enabled = args['distributed_cloud_enabled']
