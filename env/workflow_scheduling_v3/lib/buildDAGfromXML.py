@@ -11,7 +11,7 @@ import numpy as np
 
 
 def buildGraph(type, filename, distributed_cloud_enabled, region_map):
-    print("Building DAG:", {filename})
+    # print("Building DAG:", {filename})
     tot_processTime = 0
     dag = nx.DiGraph(type=type)
     with open(filename, 'rb') as xml_file:
