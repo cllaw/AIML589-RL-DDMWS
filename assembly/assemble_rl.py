@@ -293,6 +293,13 @@ def worker_func(arguments):
                 # reshape s
                 if s.ndim < 2:  # make sure ndim of state = 2
                     s = s[np.newaxis, :]
+
+                state_dim = s.shape[1]  # Get new state dimension
+                if ob_rms_mean.shape[0] != state_dim:
+                    print(f"Adjusting ob_rms_mean and ob_rms_std to match state size: {state_dim}")
+                    ob_rms_mean = np.zeros(state_dim)
+                    ob_rms_std = np.ones(state_dim)
+
                 # update s
                 if ob_rms_mean is not None:
                     s = (s - ob_rms_mean) / ob_rms_std

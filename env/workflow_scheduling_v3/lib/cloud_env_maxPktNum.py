@@ -79,7 +79,8 @@ class cloud_simulator(object):
                                                    'Task Index', 'Task Size', 'Task Execution Time', 'Task Ready Time', 'Task Start Time', 'Task Finish Time',
                                                    'VM ID', 'VM speed', 'Price', 'VM Rent Start Time', 'VM Rent End Time', 'VM Pending Index'])  # 6 + 6 + 6 columns
 
-        self.observation_space = gymnasium.spaces.Box(low=0, high=10000, shape=(6 + self.set.history_len,))
+        num_states = 8
+        self.observation_space = gymnasium.spaces.Box(low=0, high=10000, shape=(num_states + self.set.history_len,))
         # self.observation_space = gymnasiumnasium.spaces.Box(low=0, high=10000, shape=(9 + self.set.history_len,))  # Ya added
         self.action_space = gymnasium.spaces.Discrete(n=100)  # n is a placeholder
 
@@ -608,26 +609,29 @@ class cloud_simulator(object):
         1.	Number of child tasks: childNum
         2.	Completion ratio: completionRatio
         3.	Workflow arrival rate: arrivalRate (a vector of historical arrivalRate)
-        4.	Whether the VM can satisfy the deadline regardless the extra cost: meetDeadline (0:No, 1:Yes)
-        5.	Total_overhead_cost = potential vm rental fee + deadline violation penalty: extraCost
-        6.  VM_remainTime: after allocation, currentRemainTime - taskExeTime ( + newVMrentPeriod if applicable)
-        7.	BestFit - among all the VMs, whether the current one introduces the lowest extra cost? (0, 1)
+        4.  Task Region ID:
+        5.	Whether the VM can satisfy the deadline regardless the extra cost: meetDeadline (0:No, 1:Yes)
+        6.	Total_overhead_cost = potential vm rental fee + deadline violation penalty: extraCost
+        7.  VM_remainTime: after allocation, currentRemainTime - taskExeTime ( + newVMrentPeriod if applicable)
+        8.	BestFit - among all the VMs, whether the current one introduces the lowest extra cost? (0, 1)
+        9.  VM Region ID:
         '''
 
         ob = []
 
         # ---1)task related state:
         # Task region ID
-        print("All successors:", self.nextWrf.get_allnextTask(self.nextTask))
-        print("Test VM Id", self.nextWrf.get_allnextTask(self.nextTask))
+        # print("Current Task:", self.nextTask)
+        # print("All successors:", self.nextWrf.get_allnextTask(self.nextTask))
         task_region = self.nextWrf.processRegion[self.nextTask]  # Assuming tasks have an originDC (region ID)
-        print("Verify task region", {task_region})
+        # print("Verify task region", {task_region})
 
         childNum = len(self.nextWrf.get_allnextTask(self.nextTask))  # number of child tasks
         completionRatio = self.nextWrf.get_completeTaskNum() / self.nextWrf.get_totNumofTask()  # self.nextWrf: current Wrf
         arrivalRate = np.sum(np.sum(self.notNormalized_arr_hist, axis=0), axis=0)
         task_ob = [childNum, completionRatio, task_region]
         task_ob.extend(list(copy.deepcopy(arrivalRate)))
+        # print("Test:", task_ob)
 
         # calculate the sub-deadline for a task
         if self.nextWrf not in self.appSubDeadline:
@@ -689,5 +693,6 @@ class cloud_simulator(object):
         bestFit[row_ind, :] = 1
         ob = np.hstack((temp, bestFit))
 
+        # print(f"State shape: {ob.shape}")
         return ob
 

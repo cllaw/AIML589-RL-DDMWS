@@ -114,7 +114,7 @@ def draw_dag(dag, region_map, save_path=None):
     # Draw edges
     nx.draw_networkx_edges(dag, pos, edgelist=dag.edges(), edge_color='gray')
 
-    plt.title("Sipht_30")  # TODO: Add dynamic name for title
+    plt.title("Distributed_CyberShake_30")  # TODO: Add dynamic name for title
 
     if save_path:
         plt.savefig(save_path, format='png', dpi=300, bbox_inches='tight')

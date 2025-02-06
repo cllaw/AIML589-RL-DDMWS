@@ -229,8 +229,8 @@ class Workflow:
             dataSize_bits = dataSize_mb * 8000000  # Convert MB to bits
 
             # Determine which VM and region will process the successor
-            print(f"Test predecessor task {task} region: {self.get_taskRegion(task)} | "
-                  f"successor {successor} region: {self.get_taskRegion(successor)}")
+            # print(f"Test predecessor task {task} region: {self.get_taskRegion(task)} | "
+            #       f"successor {successor} region: {self.get_taskRegion(successor)}")
             logger.debug(f"Get successor task process time: {self.get_taskProcessTime(successor)}")
 
             temp_successor = self.get_taskProcessTime(successor) / cpu
