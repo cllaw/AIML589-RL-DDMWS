@@ -108,6 +108,9 @@ class Workflow:
         return self.app.nodes[task]['processTime']  # networkx
         # return self.app.vs[task]['processTime']  # igraph
 
+    def get_task_regionId(self, task):
+        return self.app.nodes[task]['regionId']
+
     # TODO: Currently each task is an object as part of a DAG data structure.
     #  Consider how you will add source region location to a each task in a workflow
     #  What would constitute as inter region data transfer?
@@ -166,7 +169,7 @@ class Workflow:
         if region1 is not None and region2 is not None and region1 != region2:
             # convert latency ms to seconds
             communication_delay = (dataSize_bits / bandwidth_in_bits) + (latency_map[region1][region2] / 1000)
-            logger.debug(f"Adding delay of {communication_delay} seconds (s) for inter-region communication between "
+            logger.debug(f"(Task {[task]} -> {successorTask}) Adding delay of {communication_delay} seconds (s) for inter-region communication between "
                          f"{region_map[region1]} to {region_map[region2]}")
             return communication_delay
         return 0
@@ -180,7 +183,7 @@ class Workflow:
 
     def calculate_data_transfer_cost(self, data_size_bits, region_id, data_transfer_cost_map):
         """
-        Method tho calculate inter-region data transfer costs associated with a source region
+        Method to calculate inter-region data transfer costs associated with a source region
 
         Args
             data_size_bits: Float representing the approximated size in bits of the task to process
@@ -225,12 +228,9 @@ class Workflow:
             dataSize_mb = self.get_taskProcessTime(task) * data_scaling_factor  # Data size in MB
             dataSize_bits = dataSize_mb * 8000000  # Convert MB to bits
 
-            # TODO: This shouldnt be in here, find way to simulate this as part of the scheduling policy
-            #  There should be a scheduling policy that selects a particular VM and you just use the location in it
-            #  Suggestion: Use the region with the lowest latency / data transfer cost from the source?
-            #    Explore trade off between this and existing cost of SLA penalties
             # Determine which VM and region will process the successor
-            self.update_taskLocation(successor, np.random.randint(2))
+            print(f"Test predecessor task {task} region: {self.get_taskRegion(task)} | "
+                  f"successor {successor} region: {self.get_taskRegion(successor)}")
             logger.debug(f"Get successor task process time: {self.get_taskProcessTime(successor)}")
 
             temp_successor = self.get_taskProcessTime(successor) / cpu

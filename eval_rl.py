@@ -31,21 +31,21 @@ def main(gamma, wf_size, distributed_cloud_enabled):
     print(f"Test Matrix: {testMatrix}")
 
     # which_log = 'logs/WorkflowScheduling-v0'
-    which_log = 'logs/WorkflowScheduling-v3'
+    which_log = 'logs/WorkflowScheduling-v3/20241128153754047067'
     log_folders = [f.path for f in os.scandir(which_log) if f.is_dir()]  # Returns the first level of the "%Y%m%d%H%M%S%f" folder
 
     for log_path in log_folders:
-        for fr in np.arange(0, 3020, 20, dtype=int):  # test on each saved model
+        # for fr in np.arange(0, 3020, 20, dtype=int):  # test on each saved model
         # for fr in np.arange(3000, 3020, 20, dtype=int):  # only test the finally saved model
-            # if log file not exits, break the loop
-            model = f'{log_path}/saved_models/ep_{fr}.pt'
-            if not os.path.exists(model):
-                break
-            eval_config = EvalConfig(fr, log_path, wf_size, gamma, distributed_cloud_enabled)
-            print(f'gamma:{gamma}, Wf_size:{wf_size}, Log path:{log_path}, model:{fr}')
+        # if log file not exits, break the loop
+        model = f'{log_path}/saved_models/ep_{120}.pt'
+        # if not os.path.exists(model):
+        #     break
+        eval_config = EvalConfig(120, which_log, wf_size, gamma, distributed_cloud_enabled)
+        print(f'gamma:{gamma}, Wf_size:{wf_size}, Log path:{log_path}, model:{120}')
 
-            set_seed(eval_config.config["yaml-config"]['env']['seed'])
-            Builder(eval_config, testMatrix).build().eval()
+        set_seed(eval_config.config["yaml-config"]['env']['seed'])
+        Builder(eval_config, testMatrix).build().eval()
 
 
 if __name__ == "__main__":

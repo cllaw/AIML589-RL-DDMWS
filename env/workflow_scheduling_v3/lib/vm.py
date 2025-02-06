@@ -119,9 +119,6 @@ class VM:
             data_transfer_cost_map: Dict of inter-region data transfer costs.
             data_scaling_factor: Float used as the processing time scaling factor to data size conversion
         """
-        # Update task location in the workflow
-        app.update_taskLocation(task, self.regionid)
-
         temp = app.get_taskProcessTime(task) / self.cpu
         logger.debug(f"Original Task Process time (Size(t)): {app.get_taskProcessTime(task)}")
         logger.debug(f"Original Task Execution Time (EXT(t)): {temp}")
@@ -129,6 +126,7 @@ class VM:
         # Latency and data transfer cost calculation for DDMWS
         communication_delay, data_transfer_cost = app.process_successor_tasks(enqueueTime, task, data_scaling_factor, self.cpu, self.vmid, self.regionid,
                                                                               bandwidth_map, latency_map, region_map, data_transfer_cost_map)
+        # print(f"Task {task} ({app.get_taskProcessTime(task)}) with communication delay: {communication_delay}")
 
         self.totalProcessTime += temp
         self.pendingTaskTime += temp
