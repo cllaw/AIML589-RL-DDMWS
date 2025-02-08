@@ -1,7 +1,6 @@
 # assume the runtime in *.xml is the execution time on a CPU with 16 cores
 # references: Characterizing and profiling scientific workflows
 
-from networkx.drawing.nx_agraph import graphviz_layout
 import xml.etree.ElementTree as ET
 # networkx version
 import networkx as nx
@@ -57,6 +56,8 @@ def buildGraph(type, filename, distributed_cloud_enabled, region_map):
 
 
 def draw_dag(dag, region_map, save_path=None):
+    from networkx.drawing.nx_agraph import graphviz_layout
+
     # Generate a hierarchical layout (top-down)
     pos = graphviz_layout(dag, prog='dot')
     plt.figure(figsize=(12, 8))

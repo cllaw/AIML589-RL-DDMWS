@@ -79,6 +79,7 @@ class cloud_simulator(object):
                                                    'Task Index', 'Task Size', 'Task Execution Time', 'Task Ready Time', 'Task Start Time', 'Task Finish Time',
                                                    'VM ID', 'VM speed', 'Price', 'VM Rent Start Time', 'VM Rent End Time', 'VM Pending Index'])  # 6 + 6 + 6 columns
 
+        # TODO: Make this work dynamically so we can test older models with different numbers of states
         num_states = 8
         self.observation_space = gymnasium.spaces.Box(low=0, high=10000, shape=(num_states + self.set.history_len,))
         # self.observation_space = gymnasiumnasium.spaces.Box(low=0, high=10000, shape=(9 + self.set.history_len,))  # Ya added
@@ -513,8 +514,8 @@ class cloud_simulator(object):
                             else:
                                 vm_vcpu = max(self.set.dataset.vmVCPU)  # Largest vCPU
 
-                            print(
-                                f"Task {task} assigned vCPU: {vm_vcpu} (Exec Time: {task_exec_time}, Avg: {avg_exec_time})")
+                            # print(
+                            #     f"Task {task} assigned vCPU: {vm_vcpu} (Exec Time: {task_exec_time}, Avg: {avg_exec_time})")
 
                             bandwidth_in_bits = self.set.dataset.bandwidth_map[vm_vcpu] * 1000000000   # Bandwidth in bits per second
                             communication_delay = app.calculate_communicationDelay(
