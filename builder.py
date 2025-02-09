@@ -17,7 +17,7 @@ class Builder:
     def build(self):
         env = build_env(self.config.config, self.testMatrix)
         updated_state_num = get_state_num(env)
-        print(f"Updated State Num: {updated_state_num}")
+        # print(f"Updated State Num: {updated_state_num}")
         self.config.config['yaml-config']["policy"]["discrete_action"] = is_discrete_action(env)  # based on the environment, decide if the action space is discrete
         self.config.config['yaml-config']["policy"]["state_num"] = get_state_num(env)  # based on the environment, generate the state num to build policy
         self.config.config['yaml-config']["policy"]["action_num"] = get_nn_output_num(env)  # based on the environment, generate the action num to build policy

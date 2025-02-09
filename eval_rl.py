@@ -51,4 +51,5 @@ def main(gamma, wf_size, distributed_cloud_enabled):
 
 
 if __name__ == "__main__":
+    # TODO: add distributed_cloud_enabled param to 'workflow_scheduling_es_openai.yaml'
     main(gamma=2.0, wf_size="S", distributed_cloud_enabled=True)
