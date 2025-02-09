@@ -42,7 +42,8 @@ def build_env(config, testMatrix):
 def build_policy(config):
     model_name = config["name"]
     if model_name == "model_workflow":
-        from policy.wf_model import WFPolicy  # the algorithm
+        # from policy.wf_model import WFPolicy  # Simple lightweight algorithm for testing
+        from policy.spn_cws import WFPolicy  # Algorithm from Ya's paper
         return WFPolicy(config)
     else:
         raise AssertionError(f"{model_name} doesn't support, please specify supported a model in yaml.")
