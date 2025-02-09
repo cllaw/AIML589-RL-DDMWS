@@ -497,6 +497,7 @@ class cloud_simulator(object):
                     avg_exec_time = np.mean(task_exec_times) if task_exec_times else 1  # Avoid division by zero
 
                     # Calculate the latency penalty for inter-region communication.
+                    total_workflow_latency_penalty = 0
                     for task in self.nextWrf.get_allTask():  # Iterate through tasks in the workflow
                         total_task_latency_penalty = 0
                         for successor in self.nextWrf.get_allnextTask(task):  # Get successor tasks
@@ -533,8 +534,9 @@ class cloud_simulator(object):
                         # print(f"App ID: {self.nextWrf.get_appID()}")
                         logger.debug(f"Total Latency penalty for task {task}: {total_task_latency_penalty}")
                         self.SLApenalty += total_task_latency_penalty  # Add latency penalty to SLA penalties
+                        total_workflow_latency_penalty += total_task_latency_penalty
 
-                    self.record_a_completed_workflow(ddl_penalty, total_task_latency_penalty)
+                    self.record_a_completed_workflow(ddl_penalty, total_workflow_latency_penalty)
                     del app, self.nextWrf
 
                 self.get_nextTimeStep()
