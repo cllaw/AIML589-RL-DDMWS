@@ -72,13 +72,17 @@ class WFPolicy(BasePolicy):
             self.add_gru = True
 
         # Policy networks
-        self.model = SelfAttentionEncoder(task_fea_size=5, vm_fea_size=5, output_size=1, d_model=16,
+        self.model = SelfAttentionEncoder(task_fea_size=7, vm_fea_size=5, output_size=1, d_model=16,
                                           num_heads=2, num_en_layers=2, d_ff=64, dropout=0.1)  # IMPORTANT: in DDMWS, the task_fea_size and vm_fea_size may changed and not 4
 
     def forward(self, x, removeVM=None):
         with (torch.no_grad()):  # Will not call Tensor.backward()
             x = torch.from_numpy(x).float()
+
+            # Extracts all columns except the last 5 (5 is the num_state of vm-info)
             task_info = x[:, 0:-5].unsqueeze(1)  # IMPORTANT: if the state number of task is changed in DDMWS, alter 4 to a right number
+
+            # Extracts only the last 5 columns (as 5 is the num_state of vm-info)
             vm_info = x[:, -5::].unsqueeze(1)  # IMPORTANT: if the state number of vm is changed in DDMWS, alter 4 to a right number
             x = self.model(task_info, vm_info)
             x = x.permute(1, 0, 2)

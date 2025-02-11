@@ -80,7 +80,7 @@ class cloud_simulator(object):
                                                    'VM ID', 'VM speed', 'Price', 'VM Rent Start Time', 'VM Rent End Time', 'VM Pending Index'])  # 6 + 6 + 6 columns
 
         # TODO: Make this work dynamically so we can test older models with different numbers of states
-        num_states = 8
+        num_states = 10
         self.observation_space = gymnasium.spaces.Box(low=0, high=10000, shape=(num_states + self.set.history_len,))
         # self.observation_space = gymnasiumnasium.spaces.Box(low=0, high=10000, shape=(9 + self.set.history_len,))  # Ya added
         self.action_space = gymnasium.spaces.Discrete(n=100)  # n is a placeholder
@@ -673,12 +673,14 @@ class cloud_simulator(object):
         task_region = self.nextWrf.processRegion[self.nextTask]  # Assuming tasks have an originDC (region ID)
         # print("Verify task region", {task_region})
 
+        # get region coordinates
+        latitude, longitude = self.set.dataset.region_coords[task_region]
+
         childNum = len(self.nextWrf.get_allnextTask(self.nextTask))  # number of child tasks
         completionRatio = self.nextWrf.get_completeTaskNum() / self.nextWrf.get_totNumofTask()  # self.nextWrf: current Wrf
         arrivalRate = np.sum(np.sum(self.notNormalized_arr_hist, axis=0), axis=0)
-        task_ob = [childNum, completionRatio, task_region]
+        task_ob = [childNum, completionRatio, task_region, latitude, longitude]
         task_ob.extend(list(copy.deepcopy(arrivalRate)))
-        # print("Test:", task_ob)
 
         # calculate the sub-deadline for a task
         if self.nextWrf not in self.appSubDeadline:
@@ -731,6 +733,7 @@ class cloud_simulator(object):
                 ob.append([])
                 # print(f"Extra Cost: {extraCost} for VM ({cpuNum} CPU) in region: {self.set.dataset.region_map[dcind]}")
                 # print(f"VM remaining time: {vm_remainTime}")
+                # print(f"New VM that can be rented dcind: {dcind}")
                 ob[-1] = task_ob + [meetDeadline, extraCost, vm_remainTime, dcind]
 
         # if a VM is the best fit, i.e., min(extraCost)

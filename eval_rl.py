@@ -51,5 +51,6 @@ def main(gamma, wf_size, distributed_cloud_enabled):
 
 
 if __name__ == "__main__":
-    # TODO: add distributed_cloud_enabled param to 'workflow_scheduling_es_openai.yaml'
+    # TODO: add distributed_cloud_enabled param to 'workflow_scheduling_es_openai.yaml' for eval?
+    #  Currently the param in 'workflow_scheduling_es_openai.yaml' is used for training params
     main(gamma=2.0, wf_size="S", distributed_cloud_enabled=True)
