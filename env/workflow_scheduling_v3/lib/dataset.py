@@ -63,8 +63,6 @@ class dataset:
         # TODO: Find some reasoning for these scaling constants and explain them
         self.latencyPenaltyFactor = 0.5  # Between 0.2 - 2.0
 
-        self.dataScalingFactor = 0.5  # Used to approximate physical size of tasks in from processing time
-
         # Base VM cost per CPU per region
         # Min CPU's provided from services is usually 2, so we define the base fee as this divide by 2 for 1 CPU
         # Assumption: extra costs only takes the cheapest, smallest VM into account.

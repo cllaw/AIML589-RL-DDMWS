@@ -4,7 +4,6 @@
     2. self.indEVALindex = ep_num, individual is evaluated on ep_num-th instance in on dataGen
 """
 from eval_rl import debug_mode
-
 import numpy as np
 # import pandas as pd
 import csv
@@ -433,8 +432,7 @@ class cloud_simulator(object):
                               self.set.dataset.bandwidth_map,
                               self.set.dataset.latency_map,
                               self.set.dataset.region_map,
-                              self.set.dataset.data_transfer_cost_map,
-                              self.set.dataset.dataScalingFactor)
+                              self.set.dataset.data_transfer_cost_map)
             # TODO: Not sure if this is required? Check
             #  This may be required when we stop using randomly set region ids in all the successor tasks
             # Update the successor task’s region when it’s assigned to the selected VM
@@ -501,8 +499,7 @@ class cloud_simulator(object):
                     for task in self.nextWrf.get_allTask():  # Iterate through tasks in the workflow
                         total_task_latency_penalty = 0
                         for successor in self.nextWrf.get_allnextTask(task):  # Get successor tasks
-                            dataSize_bits = self.nextWrf.calculate_dataSize(app.get_taskProcessTime(task),
-                                                                            self.set.dataset.dataScalingFactor)  # Data size for communication
+                            dataSize_bits = app.get_taskDataSize(task)  # Data size for communication
 
                             # Task based: Choose vCPU based on task execution time
                             task_exec_time = app.get_taskProcessTime(task)
@@ -679,7 +676,7 @@ class cloud_simulator(object):
         childNum = len(self.nextWrf.get_allnextTask(self.nextTask))  # number of child tasks
         completionRatio = self.nextWrf.get_completeTaskNum() / self.nextWrf.get_totNumofTask()  # self.nextWrf: current Wrf
         arrivalRate = np.sum(np.sum(self.notNormalized_arr_hist, axis=0), axis=0)
-        task_ob = [childNum, completionRatio, task_region, latitude, longitude]
+        task_ob = [childNum, completionRatio, task_region]
         task_ob.extend(list(copy.deepcopy(arrivalRate)))
 
         # calculate the sub-deadline for a task

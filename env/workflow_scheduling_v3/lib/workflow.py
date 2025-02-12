@@ -108,6 +108,9 @@ class Workflow:
         return self.app.nodes[task]['processTime']  # networkx
         # return self.app.vs[task]['processTime']  # igraph
 
+    def get_taskDataSize(self, task):
+        return self.app.nodes[task]['dataSize']  # networkx
+
     def get_task_regionId(self, task):
         return self.app.nodes[task]['regionId']
 
@@ -144,11 +147,6 @@ class Workflow:
     # Store the region ID for each task based on the VM processing it
     def update_taskLocation(self, task, vm_region_id):
         self.processRegion[task] = vm_region_id
-
-    def calculate_dataSize(self, process_time, data_scaling_factor):
-        dataSize_mb = process_time * data_scaling_factor  # Data size in MB
-        dataSize_bits = dataSize_mb * 8000000  # Convert MB to bits
-        return dataSize_bits
 
     def calculate_communicationDelay(self, task, successorTask, dataSize_bits, bandwidth_in_bits, latency_map, region_map):
         """
@@ -196,14 +194,13 @@ class Workflow:
 
         return transfer_cost
 
-    def process_successor_tasks(self, task_enqueue_time, task, data_scaling_factor, cpu, vm_id, region_id,
+    def process_successor_tasks(self, task_enqueue_time, task, cpu, vm_id, region_id,
                                 bandwidth_map, latency_map, region_map, data_transfer_cost_map):
         """
         Process the successors of the given task with region-based logic.
         Args:
             task_enqueue_time: the enqueue time of the current task
             task: Current task ID.
-            data_scaling_factor: Float to use when approximating task execution time to data size
             cpu: int the number of CPU's the VM has (VMType).
             vm_id: int the ID of the VM running this workflow is being run on.
             region_id: int the region ID of the VM
@@ -225,9 +222,7 @@ class Workflow:
             if successor not in self.enqueueTime:
                 self.enqueueTime[successor] = 0  # Initialize if not already set
 
-            # In DDMWS we estimate the datasize in bits of a task based on its processing time
-            dataSize_bits = self.calculate_dataSize(self.get_taskProcessTime(task), data_scaling_factor)
-
+            dataSize_bits = self.get_taskDataSize(task)
             # Determine which VM and region will process the successor
             # print(f"Test predecessor task {task} region: {self.get_taskRegion(task)} | "
             #       f"successor {successor} region: {self.get_taskRegion(successor)}")
