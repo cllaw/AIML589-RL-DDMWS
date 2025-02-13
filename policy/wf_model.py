@@ -23,6 +23,9 @@ class WFPolicy(BasePolicy):
 
     def forward(self, x, removeVM=None):
         with torch.no_grad():  # Will not call Tensor.backward()
+            # Debugging statement to print shape before passing into fc1
+            # print(f"Input Shape to NN: {x.shape}, Expected: {self.state_num}")
+
             x = torch.from_numpy(x).float()
             x = x.unsqueeze(0)  # Todo: check x dim as its condition
             x = torch.tanh(self.fc1(x))  # use tanh as the activate function

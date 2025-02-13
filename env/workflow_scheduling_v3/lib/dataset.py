@@ -60,6 +60,9 @@ class dataset:
 
         self.request = np.array([1]) * 0.01  # Poisson distribution: the default is 0.01, lets test 10.0 1.0 and 0.1
 
+        # TODO: Find some reasoning for these scaling constants and explain them
+        self.latencyPenaltyFactor = 0.5  # Between 0.2 - 2.0
+
         # Base VM cost per CPU per region
         # Min CPU's provided from services is usually 2, so we define the base fee as this divide by 2 for 1 CPU
         # Assumption: extra costs only takes the cheapest, smallest VM into account.
@@ -102,6 +105,12 @@ class dataset:
                 0: 75,  # Latency to N. Virginia
                 1: 264  # Latency to Sydney
             }
+        }
+
+        self.region_coords = {
+            0: [39.0438, -77.4874],   # N. Virginia
+            1: [-33.8688, 151.2093],  # Sydney
+            2: [51.5074, -0.1278]     # London
         }
 
         # Inter-region data transfer costs per GB

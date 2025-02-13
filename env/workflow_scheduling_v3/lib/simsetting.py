@@ -2,8 +2,17 @@ import inspect
 import os
 import re
 import sys
-
+import logging
 import numpy as np
+
+from main import debug_mode
+
+logging.basicConfig(
+    level=logging.DEBUG if debug_mode else logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+logger = logging.getLogger(__name__)
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(os.path.dirname(currentdir))
@@ -69,13 +78,13 @@ class Setting(object):
 
             latency_matrix = np.array([region_ids])
             latency = np.multiply(latency_matrix, 0.5)  # TODO: Incorporate real latency between the regions here
-            print(f"Latency: {latency}")
+            logger.debug(f"Latency: {latency}")
             self.candidate = region_ids
             self.dcNum = len(self.candidate)   # default: 3
             self.usrNum = latency.shape[0]  # default: 1
             self.candidate.sort()
             self.usr2dc = latency[:, self.candidate]
-            print(f"usrNum Latency: {self.usrNum}")
+            logger.debug(f"usrNum Latency: {self.usrNum}")
 
         else:
             assert (num == 0), "Please set envid to 0!"

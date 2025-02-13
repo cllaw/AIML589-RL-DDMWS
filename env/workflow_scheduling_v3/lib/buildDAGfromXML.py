@@ -1,13 +1,20 @@
 # assume the runtime in *.xml is the execution time on a CPU with 16 cores
 # references: Characterizing and profiling scientific workflows
 
-from networkx.drawing.nx_agraph import graphviz_layout
 import xml.etree.ElementTree as ET
 # networkx version
 import networkx as nx
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import numpy as np
+
+dataScalingFactor = 0.5  # Used as the scaling factor to approximate physical size of tasks based on processing time
+
+
+def calculate_dataSize(process_time, data_scaling_factor):
+    dataSize_mb = process_time * data_scaling_factor  # Data size in MB
+    dataSize_bits = dataSize_mb * 8000000  # Convert MB to bits
+    return dataSize_bits
 
 
 def buildGraph(type, filename, distributed_cloud_enabled, region_map):
@@ -26,6 +33,9 @@ def buildGraph(type, filename, distributed_cloud_enabled, region_map):
                 # print(f"Processing child {p}, of size: {int(p.attrib['size'])}")
                 size += int(p.attrib['size'])
 
+            # Modifications to dataset for distributed workflow:
+            # In DDMWS we estimate the datasize in bits of a task based on its processing time
+
             # TODO: Assign region based on dataset mapping, could create some sort of heuristic to extend the dataset by
             #   assigning region ids of tasks with some criteria etc
             # if self.nextTask in self.workflow_dataset_map:
@@ -34,9 +44,10 @@ def buildGraph(type, filename, distributed_cloud_enabled, region_map):
             # else:
             #     # Fallback: Random assignment if no mapping exists (only for testing)
             random_region = np.random.choice(3) if distributed_cloud_enabled else 0
-            dag.add_node(int(child.attrib['id'][2:]), processTime=float(child.attrib['runtime']) * 16, size=size,
-                         regionId=random_region)
-            tot_processTime += float(child.attrib['runtime']) * 16
+            process_time = float(child.attrib['runtime']) * 16
+            dag.add_node(int(child.attrib['id'][2:]), processTime=process_time, size=size,
+                         regionId=random_region, dataSize=calculate_dataSize(process_time, dataScalingFactor))
+            tot_processTime += process_time
 
             # print(f"Total Process time of job {int(child.attrib['id'][2:])}: {float(child.attrib['runtime']) * 16}")
             # print(f"Total Size of job {int(child.attrib['id'][2:])}: {size}")
@@ -57,6 +68,8 @@ def buildGraph(type, filename, distributed_cloud_enabled, region_map):
 
 
 def draw_dag(dag, region_map, save_path=None):
+    from networkx.drawing.nx_agraph import graphviz_layout
+
     # Generate a hierarchical layout (top-down)
     pos = graphviz_layout(dag, prog='dot')
     plt.figure(figsize=(12, 8))
@@ -114,7 +127,7 @@ def draw_dag(dag, region_map, save_path=None):
     # Draw edges
     nx.draw_networkx_edges(dag, pos, edgelist=dag.edges(), edge_color='gray')
 
-    plt.title("Sipht_30")  # TODO: Add dynamic name for title
+    plt.title("Distributed_CyberShake_30")  # TODO: Add dynamic name for title
 
     if save_path:
         plt.savefig(save_path, format='png', dpi=300, bbox_inches='tight')
