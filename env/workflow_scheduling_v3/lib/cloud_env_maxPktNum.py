@@ -508,7 +508,7 @@ class cloud_simulator(object):
                                 vm_vcpu = assigned_vm.cpu  # Get the actual vCPU of the assigned VM
                                 # print(f"VM found, assigning task {task} to: {vm_vcpu} vCPU")
                             else:
-                                print("No VM found, assigning task to smallest vCPU")
+                                logger.debug("No VM found, assigning task to smallest vCPU")
                                 vm_vcpu = min(
                                     self.set.dataset.vmVCPU)  # Default to the smallest vCPU if no VM is found
 
