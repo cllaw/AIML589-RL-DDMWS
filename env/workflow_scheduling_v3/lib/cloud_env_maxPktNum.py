@@ -674,7 +674,7 @@ class cloud_simulator(object):
         childNum = len(self.nextWrf.get_allnextTask(self.nextTask))  # number of child tasks
         completionRatio = self.nextWrf.get_completeTaskNum() / self.nextWrf.get_totNumofTask()  # self.nextWrf: current Wrf
         arrivalRate = np.sum(np.sum(self.notNormalized_arr_hist, axis=0), axis=0)
-        task_ob = [childNum, completionRatio, task_region]
+        task_ob = [childNum, completionRatio, task_region, latitude, longitude]
         task_ob.extend(list(copy.deepcopy(arrivalRate)))
 
         # calculate the sub-deadline for a task

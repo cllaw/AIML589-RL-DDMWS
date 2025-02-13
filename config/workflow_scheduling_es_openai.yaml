@@ -6,7 +6,7 @@ env:
   traffic_pattern: CONSTANT
   gamma: 18  # Deadline factor for training process
   wf_size: S  # S, M, L, XL: the number of task in one workflow
-  wf_num: 1  # The number of workflow in each training problem instance
+  wf_num: 10  # The number of workflow in each training problem instance
   dataGen: 10000  # How many generations to iterate: the length of generative training dataset, usually >> generation for reproducible
   # evalNum: 1  # How many problem instances are used to evaluate each individual in training process, overwrite in base_config.py
   validNum: 3  # How many problem instances are used to verify the performance in testing process
