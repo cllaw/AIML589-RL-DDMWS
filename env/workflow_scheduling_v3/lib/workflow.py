@@ -148,12 +148,13 @@ class Workflow:
     def update_taskLocation(self, task, vm_region_id):
         self.processRegion[task] = vm_region_id
 
-    def calculate_communicationDelay(self, task, successorTask, dataSize_bits, bandwidth_in_bits, latency_map, region_map):
+    def calculate_communicationDelay(self, task, successorTask, vm_region_id, dataSize_bits, bandwidth_in_bits, latency_map, region_map):
         """
         Calculate communication delay between tasks processed in different regions.
         Args:
             task: Current task ID.
             successorTask: ID of the successor task.
+            vm_region_id: region ID of the Vm selected by the policy
             dataSize_bits: Float representing the approximated size in bits of the task to process
             bandwidth_in_bits: int bandwidth speed in bits per second.
             latency_map: Dict of inter-region communication delays.
@@ -165,11 +166,13 @@ class Workflow:
         region2 = self.get_taskRegion(successorTask)
         logger.debug(f"Data Size (bits): {dataSize_bits}")
 
-        if region1 is not None and region2 is not None and region1 != region2:
+        logger.debug(f"Region mapping: vm_region_id={vm_region_id}, region1={region1}, region2={region2} for task {task}")
+
+        if vm_region_id is not None and region2 is not None and vm_region_id != region2:
             # convert latency ms to seconds
-            communication_delay = (dataSize_bits / bandwidth_in_bits) + (latency_map[region1][region2] / 1000)
+            communication_delay = (dataSize_bits / bandwidth_in_bits) + (latency_map[vm_region_id][region2] / 1000)
             logger.debug(f"(Task {[task]} -> {successorTask}) Adding delay of {communication_delay} seconds (s) for inter-region communication between "
-                         f"{region_map[region1]} to {region_map[region2]}")
+                         f"{region_map[vm_region_id]} to {region_map[region2]}")
             return communication_delay
         return 0
 
@@ -230,9 +233,11 @@ class Workflow:
 
             temp_successor = self.get_taskProcessTime(successor) / cpu
             bandwidth_in_bits = bandwidth_map[cpu] * 1000000000  # 1 billion bits in a gigabyte
+
             logger.debug(f"\nSuccessor Task Original Execution Time: {temp_successor}(s) on VM with {cpu} vCPU's")
             communication_delay = self.calculate_communicationDelay(task,
                                                                     successor,
+                                                                    region_id,
                                                                     dataSize_bits,
                                                                     bandwidth_in_bits,
                                                                     latency_map,

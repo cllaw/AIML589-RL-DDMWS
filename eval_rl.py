@@ -11,7 +11,7 @@ import torch
 from builder import Builder
 from config.eval_config import EvalConfig
 
-debug_mode = False
+debug_mode = True
 
 
 def set_seed(seed):

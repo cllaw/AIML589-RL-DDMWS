@@ -107,6 +107,7 @@ class cloud_simulator(object):
         self.notNormalized_arr_hist = np.zeros((self.usrNum, self.wrfNum, self.set.history_len)) 
         self.VMcost = 0
         self.SLApenalty = 0
+        self.region_mismatch_penalty = 0
         self.wrfIndex = 0
         self.usrcurrentTime = np.zeros(self.usrNum)  # Used to record the current moment of the user
         self.remainWrfNum = 0           # Record the number of packets remained in VMs
@@ -175,8 +176,8 @@ class cloud_simulator(object):
 
         # In DDMWS we use a new method to assign region_ids to tasks in Workflows via their
         #   execution VM's based on some heuristic
-        # If this method is not used, each task and their sucessors are assigned a randon region_id
-        logger.debug("Tasks in workflow of:", pkt.get_allTask())
+        # If this method is not used, each task and their successors are assigned a randon region_id
+        logger.debug(f"Tasks in workflow of: {pkt.get_allTask()}")
         for task in pkt.get_allTask():  # Assuming get_all_tasks() returns all tasks in the workflow
             if task not in pkt.processRegion:
                 region_id = pkt.get_task_regionId(task)
@@ -295,10 +296,10 @@ class cloud_simulator(object):
             self.update_VMcost(self.vm_queues[VMindex].regionid, self.vm_queues[VMindex].cpu, True)
             self.VMrentInfos[key] = self.VMrentInfos[key][:4] + [self.vm_queues[VMindex].rentEndTime]  # self.VMrentInfos[key][-1]+self.set.dataset.vmPrice[self.vm_queues[VMindex].cpu]]
 
-    def record_a_completed_workflow(self, ddl_penalty, latency_penalty):
+    def record_a_completed_workflow(self, ddl_penalty):
         if self.set.is_wf_trace_record:        
             Workflow_Infos = [self.nextWrf.appArivalIndex, self.nextWrf.appID,
-                              self.nextWrf.generateTime, self.nextTimeStep, self.nextWrf.deadlineTime, ddl_penalty, latency_penalty]
+                              self.nextWrf.generateTime, self.nextTimeStep, self.nextWrf.deadlineTime, ddl_penalty]
 
             for task in range(len(self.nextWrf.executeTime)):
                 Task_Infos = [task, self.nextWrf.app.nodes[task]['processTime'], self.nextWrf.executeTime[task],
@@ -394,7 +395,7 @@ class cloud_simulator(object):
             selectedVM = VM(vmid, vm_cpu, dcid, dcid, self.nextTimeStep, self.TaskRule, region_id)
             logger.debug(f"Task: {self.nextTask}")
             logger.debug(f"Whole Region: {self.nextWrf.processRegion}")
-            logger.debug(f"New VM deployed in region: {self.set.dataset.region_map[selectedVM.regionid]}")
+            logger.debug(f"New VM deployed in region: {self.set.dataset.region_map[selectedVM.regionid]} for next task {self.nextTask} of region ID {region_id}")
 
             self.vm_queues.append(selectedVM)
             self.firstvmWrfLeaveTime.append(selectedVM.get_firstTaskDequeueTime())  # new VM is math.inf
@@ -414,6 +415,7 @@ class cloud_simulator(object):
         #   using the action index as the VM in vm_queues[selectedVMind]
         else:
             selectedVMind = action
+            logger.debug(f"Not creating a new VM, using an existing one | VM ID {selectedVMind}, region: {self.vm_queues[selectedVMind].regionid} Task {self.nextTask}")
         reward = 0
         self.PrenextUsr, self.PrenextTimeStep, self.PrenextTask = self.nextUsr, self.nextTimeStep, self.nextTask 
 
@@ -425,19 +427,26 @@ class cloud_simulator(object):
             # DDMWS: task_enqueue adds Data Transfer Latency if next selected VM is not in the same region
             #   as the previous workflow
             # TODO: Breakdown a workflow into smaller tasks and validate data transfer costs are correct
-            processTime, data_transfer_cost = self.vm_queues[selectedVMind]\
-                .task_enqueue(self.PrenextTask,
-                              self.PrenextTimeStep,
-                              self.nextWrf,
-                              self.set.dataset.bandwidth_map,
-                              self.set.dataset.latency_map,
-                              self.set.dataset.region_map,
-                              self.set.dataset.data_transfer_cost_map)
-            # TODO: Not sure if this is required? Check
-            #  This may be required when we stop using randomly set region ids in all the successor tasks
-            # Update the successor task’s region when it’s assigned to the selected VM
-            # logger.debug("CALLING REGION UPDATE AFTER WRF IS COMPLETE")
-            # self.nextWrf.update_taskLocation(self.PrenextTask, self.vm_queues[selectedVMind].regionid)
+            vm_region_id = self.vm_queues[selectedVMind].regionid
+            task_region = self.nextWrf.get_taskRegion(self.PrenextTask)
+            successor_tasks = self.nextWrf.get_allnextTask(self.PrenextTask)
+
+            self.region_mismatch_penalty = self.calculate_region_mismatch_penalty(vm_region_id, task_region, self.PrenextTask, successor_tasks)
+
+            processTime, data_transfer_cost, task_communication_delay = self.vm_queues[selectedVMind].task_enqueue(
+                self.PrenextTask,
+                self.PrenextTimeStep,
+                self.nextWrf,
+                self.set.dataset.bandwidth_map,
+                self.set.dataset.latency_map,
+                self.set.dataset.region_map,
+                self.set.dataset.data_transfer_cost_map
+            )
+
+            # Chuan added for DDMWS
+            # Calculate the latency penalty for inter-region communication.
+            total_latency_penalty = task_communication_delay * self.set.dataset.latencyPenaltyFactor
+            self.SLApenalty += total_latency_penalty
 
             # print(f"Process Time: {processTime}")
             self.update_VMcost_with_data_transfer_cost(data_transfer_cost)
@@ -486,54 +495,7 @@ class cloud_simulator(object):
 
                     ddl_penalty = self.calculate_penalty(app, respTime)
                     self.SLApenalty += ddl_penalty
-
-                    # Chuan added for DDMWS
-                    # TODO: Need to find dynamic way of getting the correct vCPU of the VM used
-                    #   Verify if this way of finding vCPUs is OK - as it is only used for latency considerations atm
-                    # Compute the average execution time across all tasks
-                    task_exec_times = [app.get_taskProcessTime(t) for t in self.nextWrf.get_allTask()]
-                    avg_exec_time = np.mean(task_exec_times) if task_exec_times else 1  # Avoid division by zero
-
-                    # Calculate the latency penalty for inter-region communication.
-                    total_workflow_latency_penalty = 0
-                    for task in self.nextWrf.get_allTask():  # Iterate through tasks in the workflow
-                        total_task_latency_penalty = 0
-                        for successor in self.nextWrf.get_allnextTask(task):  # Get successor tasks
-                            dataSize_bits = app.get_taskDataSize(task)  # Data size for communication
-
-                            # Task based: Choose vCPU based on task execution time
-                            task_exec_time = app.get_taskProcessTime(task)
-
-                            if task_exec_time < 0.5 * avg_exec_time:
-                                vm_vcpu = min(self.set.dataset.vmVCPU)  # Smallest vCPU
-                            elif task_exec_time < avg_exec_time:
-                                vm_vcpu = sorted(self.set.dataset.vmVCPU)[
-                                    len(self.set.dataset.vmVCPU) // 2]  # Medium vCPU
-                            else:
-                                vm_vcpu = max(self.set.dataset.vmVCPU)  # Largest vCPU
-
-                            # print(
-                            #     f"Task {task} assigned vCPU: {vm_vcpu} (Exec Time: {task_exec_time}, Avg: {avg_exec_time})")
-
-                            bandwidth_in_bits = self.set.dataset.bandwidth_map[vm_vcpu] * 1000000000   # Bandwidth in bits per second
-                            communication_delay = app.calculate_communicationDelay(
-                                task,
-                                successor,
-                                dataSize_bits,
-                                bandwidth_in_bits,
-                                self.set.dataset.latency_map,
-                                self.set.dataset.region_map
-                            )
-
-                            latency_penalty = communication_delay * self.set.dataset.latencyPenaltyFactor  # Scale the penalty
-                            logger.debug(f"Latency Penalty: {latency_penalty}")
-                            total_task_latency_penalty += latency_penalty
-                        # print(f"App ID: {self.nextWrf.get_appID()}")
-                        logger.debug(f"Total Latency penalty for task {task}: {total_task_latency_penalty}")
-                        self.SLApenalty += total_task_latency_penalty  # Add latency penalty to SLA penalties
-                        total_workflow_latency_penalty += total_task_latency_penalty
-
-                    self.record_a_completed_workflow(ddl_penalty, total_workflow_latency_penalty)
+                    self.record_a_completed_workflow(ddl_penalty)
                     del app, self.nextWrf
 
                 self.get_nextTimeStep()
@@ -601,7 +563,7 @@ class cloud_simulator(object):
                 done = True
 
         if done:
-            reward = -self.VMcost-self.SLApenalty  # In DDMWS, the latency penalty is incorporated into the SLA Penalty
+            reward = -self.VMcost-self.SLApenalty-self.region_mismatch_penalty  # In DDMWS, the latency penalty is incorporated into the SLA Penalty
             self.episode_info = {"VM_execHour": self.VMexecHours, "VM_totHour": self.VMrentHours,  # VM_totHour is the total rent hours of all VMs
                                  "VM_cost": self.VMcost, "SLA_penalty": self.SLApenalty,
                                  "missDeadlineNum": self.missDeadlineNum}
@@ -646,6 +608,42 @@ class cloud_simulator(object):
         else:
             self.missDeadlineNum += 1
             return 1+self.set.dataset.wsetBeta[appID]*(respTime-threshold)/3600
+
+    def calculate_region_mismatch_penalty(self, selected_region, task_region, task, successor_tasks):
+        """
+        Calculates a penalty when a task is executed in a region different from its original region.
+
+        Args:
+            selected_region (int): The region ID chosen by the policy for task execution.
+            task_region (int or None): The original region of the task (if predefined), or None if dynamically assigned.
+            task (int): The task ID.
+            successor_tasks (list): The list of successor tasks of the current task.
+
+        Returns:
+            float: Penalty score based on the mismatch.
+        """
+        penalty = 0
+
+        # If the task had a predefined region and was moved to a different region, add penalty
+        if task_region is not None and selected_region != task_region:
+            region_latency = self.set.dataset.latency_map[task_region][selected_region] / 1000  # Convert ms to seconds
+            penalty += region_latency * self.set.dataset.regionMismatchPenaltyFactor  # Scale penalty
+            logger.debug(
+                f"Task {task} moved from region {task_region} to {selected_region}, latency penalty: {penalty}")
+        else:
+            logger.debug(f"No Mismatch penaly for task {task} being executed in VM region {selected_region}")
+        # Add additional penalty based on successor task communication costs
+        # for successor in successor_tasks:
+        #     successor_region = self.nextWrf.processRegion.get(successor,
+        #                                                       selected_region)  # Use selected region if unknown
+        #     if successor_region != selected_region:
+        #         transfer_cost = self.set.dataset.data_transfer_cost_map[selected_region]
+        #         penalty += transfer_cost * self.set.dataset.regionMismatchPenaltyFactor  # Scale by penalty factor
+        #         logger.debug(
+        #             f"Data transfer penalty from region {selected_region} to {successor_region}: {transfer_cost}")
+
+        logger.debug(f"Total penalty for choosing a VM outside the task region: {penalty}")
+        return penalty
 
     def state_info_construct(self):
         '''

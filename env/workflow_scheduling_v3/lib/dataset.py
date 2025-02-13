@@ -10,7 +10,7 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(os.path.dirname(currentdir))
 sys.path.insert(0, parentdir)
 
-dataset_30 = ['CyberShake_30', 'Montage_25', 'Inspiral_30', 'Sipht_30']  # test instance 1
+dataset_30 = ['CyberShake_30']  # test instance 1
 dataset_50 = ['CyberShake_50', 'Montage_50', 'Inspiral_50', 'Sipht_60']  # test instance 2
 dataset_100 = ['CyberShake_100', 'Montage_100', 'Inspiral_100', 'Sipht_100']  # test instance 3
 dataset_1000 = ['CyberShake_1000', 'Montage_1000', 'Inspiral_1000', 'Sipht_1000']  # test instance 4
@@ -32,7 +32,7 @@ class dataset:
 
         self.wset = []
         self.wsetTotProcessTime = []
-        for i, j in zip(['CyberShake', 'Montage', 'Inspiral', 'Sipht'], dataset_dict[arg]):
+        for i, j in zip(['CyberShake'], dataset_dict[arg]):
             dag, wsetProcessTime = buildGraph(f'{i}', parentdir + f'/workflow_scheduling_v3/dax/{j}.xml',
                                               distributed_cloud_enabled, self.region_map)
 
@@ -62,6 +62,8 @@ class dataset:
 
         # TODO: Find some reasoning for these scaling constants and explain them
         self.latencyPenaltyFactor = 0.5  # Between 0.2 - 2.0
+
+        self.regionMismatchPenaltyFactor = 0.5  # Experiment with values (0.1 - 1.0)
 
         # Base VM cost per CPU per region
         # Min CPU's provided from services is usually 2, so we define the base fee as this divide by 2 for 1 CPU

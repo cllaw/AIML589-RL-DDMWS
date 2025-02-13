@@ -111,7 +111,7 @@ class VM:
         Method to enqueue tasks - when a task is placed into a VM for processing
 
         Args:
-            task: the current task to be processed on a workflow
+            task: the current task ID to be processed on a workflow
             enqueueTime: the enqueue time of the current task
             bandwidth_map: Dict of bandwidth values for each vCPU VM Type.
             latency_map: Dict of inter-region communication delays.
@@ -144,7 +144,7 @@ class VM:
 
         logger.debug(f"Task {task} complete -> Execution time: {temp}")
         logger.debug(f"---------")
-        return temp + communication_delay, data_transfer_cost
+        return temp + communication_delay, data_transfer_cost, communication_delay
 
     def task_dequeue(self, resort=True):
         task, app = self.processingtask, self.processingApp
