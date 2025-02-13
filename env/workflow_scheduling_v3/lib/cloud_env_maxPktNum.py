@@ -79,7 +79,7 @@ class cloud_simulator(object):
                                                    'VM ID', 'VM speed', 'Price', 'VM Rent Start Time', 'VM Rent End Time', 'VM Pending Index'])  # 6 + 6 + 6 columns
 
         # TODO: Make this work dynamically so we can test older models with different numbers of states
-        num_states = 10
+        num_states = 8
         self.observation_space = gymnasium.spaces.Box(low=0, high=10000, shape=(num_states + self.set.history_len,))
         # self.observation_space = gymnasiumnasium.spaces.Box(low=0, high=10000, shape=(9 + self.set.history_len,))  # Ya added
         self.action_space = gymnasium.spaces.Discrete(n=100)  # n is a placeholder
@@ -490,9 +490,7 @@ class cloud_simulator(object):
                     # Chuan added for DDMWS
                     # TODO: Need to find dynamic way of getting the correct vCPU of the VM used
                     #   Verify if this way of finding vCPUs is OK - as it is only used for latency considerations atm
-                    # Compute the average execution time across all tasks
-                    task_exec_times = [app.get_taskProcessTime(t) for t in self.nextWrf.get_allTask()]
-                    avg_exec_time = np.mean(task_exec_times) if task_exec_times else 1  # Avoid division by zero
+                    #   Check this again, better to pull the vCPU of the VM that is assigned to the task.
 
                     # Calculate the latency penalty for inter-region communication.
                     total_workflow_latency_penalty = 0
@@ -501,19 +499,20 @@ class cloud_simulator(object):
                         for successor in self.nextWrf.get_allnextTask(task):  # Get successor tasks
                             dataSize_bits = app.get_taskDataSize(task)  # Data size for communication
 
-                            # Task based: Choose vCPU based on task execution time
-                            task_exec_time = app.get_taskProcessTime(task)
+                            # print(f"Checking task {task} from workflow {self.nextWrf.appID}")
+                            # Get the VM where this task was executed
+                            assigned_vm = next(
+                                (vm for vm in self.vm_queues if vm.has_task(task, self.nextWrf.appID)), None)
 
-                            if task_exec_time < 0.5 * avg_exec_time:
-                                vm_vcpu = min(self.set.dataset.vmVCPU)  # Smallest vCPU
-                            elif task_exec_time < avg_exec_time:
-                                vm_vcpu = sorted(self.set.dataset.vmVCPU)[
-                                    len(self.set.dataset.vmVCPU) // 2]  # Medium vCPU
+                            if assigned_vm:
+                                vm_vcpu = assigned_vm.cpu  # Get the actual vCPU of the assigned VM
+                                # print(f"VM found, assigning task {task} to: {vm_vcpu} vCPU")
                             else:
-                                vm_vcpu = max(self.set.dataset.vmVCPU)  # Largest vCPU
+                                logger.debug("No VM found, assigning task to smallest vCPU")
+                                vm_vcpu = min(
+                                    self.set.dataset.vmVCPU)  # Default to the smallest vCPU if no VM is found
 
-                            # print(
-                            #     f"Task {task} assigned vCPU: {vm_vcpu} (Exec Time: {task_exec_time}, Avg: {avg_exec_time})")
+                            logger.debug(f"Task {task} Workflow {self.nextWrf.appID} executed on VM with vCPU: {vm_vcpu}")
 
                             bandwidth_in_bits = self.set.dataset.bandwidth_map[vm_vcpu] * 1000000000   # Bandwidth in bits per second
                             communication_delay = app.calculate_communicationDelay(

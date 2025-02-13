@@ -40,6 +40,7 @@ class VM:
         self.taskSelectRule = rule
         self.currentQlen = 0
         self.regionid = region_id  # DDMWS VM creation step with distributed cloud needs to hold region information
+        self.executed_tasks = []  # List to store assigned tasks
 
     def get_utilization(self, app, task):
         numOfTask = self.totalProcessTime / (app.get_taskProcessTime(task)/self.cpu)
@@ -105,6 +106,12 @@ class VM:
         else:
             return self.vmQueue.qlen()+1  # 1 is needed
 
+    def has_task(self, task, workflow_id):
+        """
+        Check if this VM executed the given task.
+        """
+        return (workflow_id, task) in self.executed_tasks
+
     def task_enqueue(self, task, enqueueTime, app, bandwidth_map, latency_map, region_map, data_transfer_cost_map,
                      resort=False):
         """
@@ -118,13 +125,15 @@ class VM:
             region_map: Dict of region_ids to region names.
             data_transfer_cost_map: Dict of inter-region data transfer costs.
         """
+        self.executed_tasks.append((app.appID, task))  # Track the task that was assigned
+        logger.debug(f"Current workflow/task stack in VM {self.vmid}: {self.executed_tasks}")
+
         temp = app.get_taskProcessTime(task) / self.cpu
         logger.debug(f"Original Task Process time (Size(t)): {app.get_taskProcessTime(task)}")
         logger.debug(f"Original Task Execution Time (EXT(t)): {temp}")
 
         # Latency and data transfer cost calculation for DDMWS
-        communication_delay, data_transfer_cost = app.process_successor_tasks(enqueueTime, task, self.cpu, self.vmid, self.regionid,
-                                                                              bandwidth_map, latency_map, region_map, data_transfer_cost_map)
+        communication_delay, data_transfer_cost = app.process_successor_tasks(self, enqueueTime, task, bandwidth_map, latency_map, region_map, data_transfer_cost_map)
         # print(f"Task {task} ({app.get_taskProcessTime(task)}) with communication delay: {communication_delay}")
 
         self.totalProcessTime += temp
@@ -133,7 +142,7 @@ class VM:
 
         app.update_executeTime(temp, task)
         app.update_enqueueTime(enqueueTime, task, self.vmid)
-        self.vmQueue.enqueue(app, enqueueTime, task, self.vmid, enqueueTime) # last is priority
+        self.vmQueue.enqueue(app, enqueueTime, task, self.vmid, enqueueTime)  # last is priority
 
         if self.processingApp is None:
             """
