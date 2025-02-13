@@ -499,16 +499,16 @@ class cloud_simulator(object):
                         for successor in self.nextWrf.get_allnextTask(task):  # Get successor tasks
                             dataSize_bits = app.get_taskDataSize(task)  # Data size for communication
 
-                            print(f"🔍 Checking task {task} from workflow {self.nextWrf.appID}")
+                            # print(f"Checking task {task} from workflow {self.nextWrf.appID}")
                             # Get the VM where this task was executed
                             assigned_vm = next(
                                 (vm for vm in self.vm_queues if vm.has_task(task, self.nextWrf.appID)), None)
 
                             if assigned_vm:
                                 vm_vcpu = assigned_vm.cpu  # Get the actual vCPU of the assigned VM
-                                logger.debug(f"VM found, assigning task {vm_vcpu} vCPU")
+                                # print(f"VM found, assigning task {task} to: {vm_vcpu} vCPU")
                             else:
-                                logger.warning("No VM found, assigning task to smallest vCPU")
+                                print("No VM found, assigning task to smallest vCPU")
                                 vm_vcpu = min(
                                     self.set.dataset.vmVCPU)  # Default to the smallest vCPU if no VM is found
 

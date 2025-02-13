@@ -133,8 +133,7 @@ class VM:
         logger.debug(f"Original Task Execution Time (EXT(t)): {temp}")
 
         # Latency and data transfer cost calculation for DDMWS
-        communication_delay, data_transfer_cost = app.process_successor_tasks(enqueueTime, task, self.cpu, self.vmid, self.regionid,
-                                                                              bandwidth_map, latency_map, region_map, data_transfer_cost_map)
+        communication_delay, data_transfer_cost = app.process_successor_tasks(self, enqueueTime, task, bandwidth_map, latency_map, region_map, data_transfer_cost_map)
         # print(f"Task {task} ({app.get_taskProcessTime(task)}) with communication delay: {communication_delay}")
 
         self.totalProcessTime += temp
@@ -143,7 +142,7 @@ class VM:
 
         app.update_executeTime(temp, task)
         app.update_enqueueTime(enqueueTime, task, self.vmid)
-        self.vmQueue.enqueue(app, enqueueTime, task, self.vmid, enqueueTime) # last is priority
+        self.vmQueue.enqueue(app, enqueueTime, task, self.vmid, enqueueTime)  # last is priority
 
         if self.processingApp is None:
             """

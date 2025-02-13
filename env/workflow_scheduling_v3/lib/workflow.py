@@ -194,7 +194,7 @@ class Workflow:
 
         return transfer_cost
 
-    def process_successor_tasks(self, task_enqueue_time, task, cpu, vm_id, region_id,
+    def process_successor_tasks(self, vm_instance, task_enqueue_time, task,
                                 bandwidth_map, latency_map, region_map, data_transfer_cost_map):
         """
         Process the successors of the given task with region-based logic.
@@ -204,13 +204,14 @@ class Workflow:
             cpu: int the number of CPU's the VM has (VMType).
             vm_id: int the ID of the VM running this workflow is being run on.
             region_id: int the region ID of the VM
+            vm_instance: VM class object
             bandwidth_map: Dict of bandwidth values for each vCPU VM Type.
             latency_map: Dict of inter-region communication delays.
             region_map: Dict of region_ids to region names.
             data_transfer_cost_map: Dict of inter-region data transfer costs.
         """
         successors = self.get_allnextTask(task)
-        logger.debug(f"VM ID: {vm_id} | {cpu} vCPUs | {region_map[region_id]}")
+        logger.debug(f"VM ID: {vm_instance.vmid} | {vm_instance.cpu} vCPUs | {region_map[vm_instance.regionid]}")
         logger.debug(f"Processing Task {task} {region_map[self.get_taskRegion(task)]} -> Successors: {successors}")
 
         total_communication_delay = 0  # all applicable delays from successor tasks
@@ -218,6 +219,7 @@ class Workflow:
 
         # need to update the successor task enqueue times with new ready_time
         for successor in successors:
+            vm_instance.executed_tasks.append((self.appID, successor))  # NEED TO ADD THIS HERE TO TRACK SUCCESSOR TASKS
             # Ensure enqueueTime for successor is initialized
             if successor not in self.enqueueTime:
                 self.enqueueTime[successor] = 0  # Initialize if not already set
@@ -228,9 +230,9 @@ class Workflow:
             #       f"successor {successor} region: {self.get_taskRegion(successor)}")
             logger.debug(f"Get successor task process time: {self.get_taskProcessTime(successor)}")
 
-            temp_successor = self.get_taskProcessTime(successor) / cpu
-            bandwidth_in_bits = bandwidth_map[cpu] * 1000000000  # 1 billion bits in a gigabyte
-            logger.debug(f"\nSuccessor Task Original Execution Time: {temp_successor}(s) on VM with {cpu} vCPU's")
+            temp_successor = self.get_taskProcessTime(successor) / vm_instance.cpu
+            bandwidth_in_bits = bandwidth_map[vm_instance.cpu] * 1000000000  # 1 billion bits in a gigabyte
+            logger.debug(f"\nSuccessor Task Original Execution Time: {temp_successor}(s) on VM with {vm_instance.cpu} vCPU's")
             communication_delay = self.calculate_communicationDelay(task,
                                                                     successor,
                                                                     dataSize_bits,
@@ -239,7 +241,7 @@ class Workflow:
                                                                     region_map)
             if communication_delay > 0:  # inter region costs need to be considered
                 logger.debug(f"App EnqueueTime: {task_enqueue_time}")
-                total_data_transfer_cost += self.calculate_data_transfer_cost(dataSize_bits, region_id, data_transfer_cost_map)
+                total_data_transfer_cost += self.calculate_data_transfer_cost(dataSize_bits, vm_instance.regionid, data_transfer_cost_map)
 
                 # adding communication delay to execution time and the new enqueue time of the successor tasks
                 self.update_executeTime(temp_successor + communication_delay, successor)
@@ -247,7 +249,7 @@ class Workflow:
                 # update enqueue time using max() to account for multiple predecessors
                 current_enqueue_time = self.get_enqueueTime(successor)
                 new_enqueue_time = max(current_enqueue_time, task_enqueue_time + communication_delay)
-                self.update_enqueueTime(new_enqueue_time, successor, vm_id)
+                self.update_enqueueTime(new_enqueue_time, successor, vm_instance.vmid)
 
                 logger.debug(f"Successor Task new Execution Time: {temp_successor + communication_delay}")
                 logger.debug(f"Successor Task new Enqueue Time: {new_enqueue_time}")
