@@ -633,14 +633,14 @@ class cloud_simulator(object):
         else:
             logger.debug(f"No Mismatch penaly for task {task} being executed in VM region {selected_region}")
         # Add additional penalty based on successor task communication costs
-        # for successor in successor_tasks:
-        #     successor_region = self.nextWrf.processRegion.get(successor,
-        #                                                       selected_region)  # Use selected region if unknown
-        #     if successor_region != selected_region:
-        #         transfer_cost = self.set.dataset.data_transfer_cost_map[selected_region]
-        #         penalty += transfer_cost * self.set.dataset.regionMismatchPenaltyFactor  # Scale by penalty factor
-        #         logger.debug(
-        #             f"Data transfer penalty from region {selected_region} to {successor_region}: {transfer_cost}")
+        for successor in successor_tasks:
+            successor_region = self.nextWrf.processRegion.get(successor,
+                                                              selected_region)  # Use selected region if unknown
+            if successor_region != selected_region:
+                transfer_cost = self.set.dataset.data_transfer_cost_map[selected_region]
+                penalty += transfer_cost * self.set.dataset.regionMismatchPenaltyFactor  # Scale by penalty factor
+                logger.debug(
+                    f"Data transfer penalty from region {selected_region} to {successor_region}: {transfer_cost}")
 
         logger.debug(f"Total penalty for choosing a VM outside the task region: {penalty}")
         return penalty
@@ -668,6 +668,7 @@ class cloud_simulator(object):
         task_region = self.nextWrf.processRegion[self.nextTask]  # Assuming tasks have an originDC (region ID)
         # print("Verify task region", {task_region})
 
+        # TODO: 14th Feb - 1) Train without spatial data 2) Train with increased Latency and RegionMismatch penalty factor
         # get region coordinates
         latitude, longitude = self.set.dataset.region_coords[task_region]
 
