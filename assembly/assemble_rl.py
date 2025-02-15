@@ -236,11 +236,16 @@ class AssembleRL(BaseAssembleRL):
         VM_execHour = results_df["VM_execHour"].tolist()[0]
         VM_totHour = results_df["VM_totHour"].tolist()[0]
         SLA_penalty = results_df["SLA_penalty"].tolist()[0]
+        RegionMismatchPenalty = results_df["RegionMismatchPenalty"].tolist()[0]
+        RegionMismatchNum = results_df["RegionMismatchNum"].tolist()[0]
         print(
             f"current testing reward: {testing_reward:.4f}, current VM cost: {VM_cost:.4f}, current SLA penalty: {SLA_penalty:.4f}, testing_time: {end_time_test:.2f}", flush=True
         )
         # VM_totHour is the total rent hours of all VMs
         print(f"current VM Execution time (hours): {VM_execHour:.4f}, current Total VM Execution time (hours): {VM_totHour:.4f}\n", flush=True)
+
+        # Chuan added: for DDMWS region aware evaluation
+        print(f"total region mismatch penalty: {RegionMismatchPenalty:.4f}, total times a VM executed a task in the wrong task region: {RegionMismatchNum}\n", flush=True)
 
         if self.log:
             results_df = results_df.drop(['hist_obs'], axis=1)  # remove hist_obs from  log

@@ -112,7 +112,8 @@ class cloud_simulator(object):
         self.usrcurrentTime = np.zeros(self.usrNum)  # Used to record the current moment of the user
         self.remainWrfNum = 0           # Record the number of packets remained in VMs
         self.missDeadlineNum = 0
-        self.VMrentHours = 0  
+        self.region_mismatch_count = 0
+        self.VMrentHours = 0
         self.VMexecHours = 0  
 
         # IMPORTANT: used to get the ready task for the next time step
@@ -381,11 +382,14 @@ class cloud_simulator(object):
             vm_type_index = diff % self.VMtypeNum
             vm_cpu = self.set.dataset.vmVCPU[vm_type_index]  # int representing how many cpus on a particular vm
 
-            # Region Selection Rule
+            # TODO: Try and train a baseline and spatial model with this settings
+            #  Assumption, give full control to policy for seelcting VM
+            #  Assumption, in method 2 allowing new VMs being made to always be the correct region limits exploration
+            # Region Selection Rule 1
             # Assign region ID based on diff and the number of regions if distributed cloud setting is enabled
             # region_id = diff % region_count if self.set.distributed_cloud_enabled else 0
 
-            # Region Selection Rule
+            # Region Selection Rule 2
             # Match the region ID of the task being executed
             if self.nextTask in self.nextWrf.processRegion:
                 region_id = self.nextWrf.processRegion[self.nextTask]  # Match VM region to task region
@@ -566,7 +570,9 @@ class cloud_simulator(object):
             reward = -self.VMcost-self.SLApenalty-self.region_mismatch_penalty  # In DDMWS, the latency penalty is incorporated into the SLA Penalty
             self.episode_info = {"VM_execHour": self.VMexecHours, "VM_totHour": self.VMrentHours,  # VM_totHour is the total rent hours of all VMs
                                  "VM_cost": self.VMcost, "SLA_penalty": self.SLApenalty,
-                                 "missDeadlineNum": self.missDeadlineNum}
+                                 "missDeadlineNum": self.missDeadlineNum,
+                                 "RegionMismatchPenalty": self.region_mismatch_penalty,
+                                 "RegionMismatchNum": self.region_mismatch_count}
             # print('Useless Allocation has ----> ',self.uselessAllocation)
             self._init()  # cannot delete
 
@@ -628,10 +634,11 @@ class cloud_simulator(object):
         if task_region is not None and selected_region != task_region:
             region_latency = self.set.dataset.latency_map[task_region][selected_region] / 1000  # Convert ms to seconds
             penalty += region_latency * self.set.dataset.regionMismatchPenaltyFactor  # Scale penalty
+            self.region_mismatch_count += 1
             logger.debug(
                 f"Task {task} moved from region {task_region} to {selected_region}, latency penalty: {penalty}")
         else:
-            logger.debug(f"No Mismatch penaly for task {task} being executed in VM region {selected_region}")
+            logger.debug(f"No Mismatch penalty for task {task} being executed in VM region {selected_region}")
         # Add additional penalty based on successor task communication costs
         for successor in successor_tasks:
             successor_region = self.nextWrf.processRegion.get(successor,
@@ -668,7 +675,8 @@ class cloud_simulator(object):
         task_region = self.nextWrf.processRegion[self.nextTask]  # Assuming tasks have an originDC (region ID)
         # print("Verify task region", {task_region})
 
-        # TODO: 14th Feb - 1) Train without spatial data 2) Train with increased Latency and RegionMismatch penalty factor
+        # TODO: 14th Feb - 1) Train without spatial data
+        #                  2) Train with increased Latency and RegionMismatch penalty factor - done
         # get region coordinates
         latitude, longitude = self.set.dataset.region_coords[task_region]
 
@@ -739,6 +747,5 @@ class cloud_simulator(object):
         bestFit[row_ind, :] = 1
         ob = np.hstack((temp, bestFit))
 
-        # print(f"State shape: {ob.shape}")
         return ob
 
