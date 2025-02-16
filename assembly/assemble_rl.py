@@ -236,11 +236,16 @@ class AssembleRL(BaseAssembleRL):
         VM_execHour = results_df["VM_execHour"].tolist()[0]
         VM_totHour = results_df["VM_totHour"].tolist()[0]
         SLA_penalty = results_df["SLA_penalty"].tolist()[0]
+        RegionMismatchPenalty = results_df["RegionMismatchPenalty"].tolist()[0]
+        RegionMismatchNum = results_df["RegionMismatchNum"].tolist()[0]
         print(
             f"current testing reward: {testing_reward:.4f}, current VM cost: {VM_cost:.4f}, current SLA penalty: {SLA_penalty:.4f}, testing_time: {end_time_test:.2f}", flush=True
         )
         # VM_totHour is the total rent hours of all VMs
-        print(f"current VM Execution time (hours): {VM_execHour:.4f}, current Total VM Execution time (hours): {VM_totHour:.4f}\n", flush=True)
+        print(f"current VM Execution time (hours): {VM_execHour:.4f}, current Total VM Execution time (hours): {VM_totHour:.4f}", flush=True)
+
+        # Chuan added: for DDMWS region aware evaluation
+        print(f"total region mismatch penalty: {RegionMismatchPenalty:.4f}, total times a VM executed a task in the wrong task region: {RegionMismatchNum}\n", flush=True)
 
         if self.log:
             results_df = results_df.drop(['hist_obs'], axis=1)  # remove hist_obs from  log
@@ -275,6 +280,8 @@ def worker_func(arguments):
     total_VM_cost = 0
     total_SLA_penalty = 0
     total_missDeadlineNum = 0
+    total_RegionMismatchPenalty = 0
+    total_RegionMismatchNum= 0
 
     for ep_num in range(eval_ep_num):
         states = env.reset(g, ep_num, train_or_test)  # Ya added: specify the i-th eval_ep_num in g-th dataGen
@@ -333,6 +340,8 @@ def worker_func(arguments):
         total_VM_cost += env.episode_info["VM_cost"]
         total_SLA_penalty += env.episode_info["SLA_penalty"]
         total_missDeadlineNum += env.episode_info["missDeadlineNum"]
+        total_RegionMismatchPenalty += env.episode_info["RegionMismatchPenalty"]
+        total_RegionMismatchNum += env.episode_info["RegionMismatchNum"]
 
     rewards_mean = total_reward / eval_ep_num
 
@@ -342,6 +351,8 @@ def worker_func(arguments):
     VM_cost_mean = total_VM_cost / eval_ep_num
     SLA_penalty_mean = total_SLA_penalty / eval_ep_num
     missDeadlineNum_mean = total_missDeadlineNum / eval_ep_num
+    RegionMismatchPenalty_mean = total_RegionMismatchPenalty / eval_ep_num
+    RegionMismatchNum_mean = total_RegionMismatchNum / eval_ep_num
 
     if env.name in ["WorkflowScheduling-v0", "WorkflowScheduling-v2", "WorkflowScheduling-v3"] and optim.name == "es_openai":
 
@@ -363,7 +374,9 @@ def worker_func(arguments):
                     "VM_totHour": VM_totHour_mean,
                     "VM_cost": VM_cost_mean,
                     "SLA_penalty": SLA_penalty_mean,
-                    "missDeadlineNum": missDeadlineNum_mean}
+                    "missDeadlineNum": missDeadlineNum_mean,
+                    "RegionMismatchPenalty": RegionMismatchPenalty_mean,
+                    "RegionMismatchNum": RegionMismatchNum_mean}
 
         else:  # we do not record detailed info for non-parent policy
             return {'policy_id': indi['0'].policy_id,
@@ -373,7 +386,9 @@ def worker_func(arguments):
                     "VM_totHour": np.nan,
                     "VM_cost": np.nan,
                     "SLA_penalty": np.nan,
-                    "missDeadlineNum": np.nan}
+                    "missDeadlineNum": np.nan,
+                    "RegionMismatchPenalty": np.nan,
+                    "RegionMismatchNum": np.nan}
 
     if ob_rms_mean is not None:
         return {'policy_id': indi['0'].policy_id, 'hist_obs': obs, 'rewards': rewards_mean}

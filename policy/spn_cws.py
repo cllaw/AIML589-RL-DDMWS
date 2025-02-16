@@ -72,7 +72,7 @@ class WFPolicy(BasePolicy):
             self.add_gru = True
 
         # Policy networks
-        self.model = SelfAttentionEncoder(task_fea_size=5, vm_fea_size=5, output_size=1, d_model=16,
+        self.model = SelfAttentionEncoder(task_fea_size=7, vm_fea_size=5, output_size=1, d_model=16,
                                           num_heads=2, num_en_layers=2, d_ff=64, dropout=0.1)  # IMPORTANT: in DDMWS, the task_fea_size and vm_fea_size may changed and not 4
 
     def forward(self, x, removeVM=None):

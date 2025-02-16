@@ -61,7 +61,9 @@ class dataset:
         self.request = np.array([1]) * 0.01  # Poisson distribution: the default is 0.01, lets test 10.0 1.0 and 0.1
 
         # TODO: Find some reasoning for these scaling constants and explain them
-        self.latencyPenaltyFactor = 0.5  # Between 0.2 - 2.0
+        self.latencyPenaltyFactor = 0.55  # Between 0.2 - 2.0
+
+        self.regionMismatchPenaltyFactor = 0.55  # Experiment with values (0.1 - 1.0)
 
         # Base VM cost per CPU per region
         # Min CPU's provided from services is usually 2, so we define the base fee as this divide by 2 for 1 CPU
