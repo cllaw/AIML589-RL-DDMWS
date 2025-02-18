@@ -435,7 +435,7 @@ class cloud_simulator(object):
             task_region = self.nextWrf.get_taskRegion(self.PrenextTask)
             successor_tasks = self.nextWrf.get_allnextTask(self.PrenextTask)
 
-            self.region_mismatch_penalty = self.calculate_region_mismatch_penalty(vm_region_id, task_region, self.PrenextTask, successor_tasks)
+            self.region_mismatch_penalty += self.calculate_region_mismatch_penalty(vm_region_id, task_region, self.PrenextTask, successor_tasks)
 
             processTime, data_transfer_cost, task_communication_delay = self.vm_queues[selectedVMind].task_enqueue(
                 self.PrenextTask,
