@@ -51,7 +51,7 @@ def main(gamma, wf_size, distributed_cloud_enabled, data_scaling_factor, latency
 
 
 if __name__ == "__main__":
-    # TODO: Consider adding distributed_cloud_enabled param (and others) to 'workflow_scheduling_es_openai.yaml' for eval?
+    # TODO: Consider adding distributed_cloud_enabled (and others) to 'workflow_scheduling_es_openai.yaml' for eval?
     #  Currently the param in 'workflow_scheduling_es_openai.yaml' is used for training params
     #  Configurable params are used here for eval instead
     main(gamma=2.0, wf_size="S", distributed_cloud_enabled=True, data_scaling_factor=0.5,
