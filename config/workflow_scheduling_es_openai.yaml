@@ -12,6 +12,9 @@ env:
   validNum: 3  # How many problem instances are used to verify the performance in testing process
   generateWay: rotation
   distributed_cloud_enabled: True
+  data_scaling_factor: 0.5  # Used as the scaling factor to approximate physical size of tasks based on processing time
+  latency_penalty_factor: 0.5  # Used to scale the communication delay between tasks. Set this and the following to 0 to negate these additions in the reward function
+  region_mismatch_penalty_factor: 0.5  # Used to punish the policy when selecting an inter-region VM to execute a task.
 
 policy:
   name: model_workflow

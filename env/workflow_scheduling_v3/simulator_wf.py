@@ -32,7 +32,10 @@ class WFEnv(cloud_simulator):
         config = {"traffic pattern": args['traffic_pattern'], "seed": args['seed'], "gamma": args['gamma'],
                   "envid": 0, "wf_size": args["wf_size"], "wf_num": args["wf_num"],
                   "trainSet": train_dataset, 'testSet': test_dataset,
-                  "distributed_cloud_enabled": args["distributed_cloud_enabled"]}
+                  "distributed_cloud_enabled": args["distributed_cloud_enabled"],
+                  "data_scaling_factor": args["data_scaling_factor"],
+                  "latency_penalty_factor": args["latency_penalty_factor"],
+                  "region_mismatch_penalty_factor": args["region_mismatch_penalty_factor"]}
         super(WFEnv, self).__init__(config)
         self.name = name
 

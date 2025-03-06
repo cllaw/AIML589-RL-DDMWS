@@ -57,10 +57,14 @@ class Setting(object):
         self.gamma = args["gamma"]
         self.pkt_trace_sample_freq = 10
         self.VMpayInterval = 60 * 60
-        self.dataset = dataset(args["wf_size"], args['distributed_cloud_enabled'])
 
-        # For DDMWS, add option to run simulation in distributed setting
+        # For DDMWS, add option to run simulation in distributed setting and new penalties
         self.distributed_cloud_enabled = args['distributed_cloud_enabled']
+        self.dataScalingFactor = args["data_scaling_factor"]  # Between 0.2 - 1.0
+        self.latencyPenaltyFactor = args["latency_penalty_factor"]  # Between 0.2 - 1.0
+        self.regionMismatchPenaltyFactor = args["region_mismatch_penalty_factor"]  # Experiment with values (0.1 - 1.0)
+
+        self.dataset = dataset(args["wf_size"], self.distributed_cloud_enabled, self.dataScalingFactor)
 
         # setting for total workflow number
         self.WorkflowNum = args["wf_num"]
@@ -74,6 +78,7 @@ class Setting(object):
         if num == 0:
             # [0] for default US single_region_id
             # [0, 1, 2] for distributed regions in DDMWS that maps to a distinct region
+            # Extend/change the number and what types of regions used in self.region_map in dataset.py
             region_ids = [0, 1, 2] if self.distributed_cloud_enabled else [0]
 
             latency_matrix = np.array([region_ids])

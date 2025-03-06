@@ -25,7 +25,7 @@ class Builder:
         policy = build_policy(self.config.config['yaml-config']["policy"])
         optim = build_optim(self.config.config['yaml-config']["optim"])
 
-        print("Distributed Cloud?", self.config.config['yaml-config']["env"]["distributed_cloud_enabled"])
+        # print("Distributed Cloud?", self.config.config['yaml-config']["env"]["distributed_cloud_enabled"])
         return AssembleRL(self.config, env, policy, optim)
 
 
