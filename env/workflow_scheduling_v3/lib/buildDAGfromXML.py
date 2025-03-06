@@ -120,14 +120,14 @@ def draw_dag(dag, region_map, save_path=None):
         [region_map[color] for color in color_map.keys()],
         title="Region ID",
         loc="lower right",
-        fontsize='small',
-        title_fontsize='medium'
+        fontsize='large',
+        title_fontsize='large',
     )
 
     # Draw edges
     nx.draw_networkx_edges(dag, pos, edgelist=dag.edges(), edge_color='gray')
 
-    plt.title("Distributed_CyberShake_30")  # TODO: Add dynamic name for title
+    plt.title("Distributed CyberShake(30) - Small Instance", fontsize=20)  # TODO: Add dynamic name for title
 
     if save_path:
         plt.savefig(save_path, format='png', dpi=300, bbox_inches='tight')

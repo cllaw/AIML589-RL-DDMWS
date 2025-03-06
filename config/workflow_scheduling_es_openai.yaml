@@ -11,7 +11,7 @@ env:
   # evalNum: 1  # How many problem instances are used to evaluate each individual in training process, overwrite in base_config.py
   validNum: 3  # How many problem instances are used to verify the performance in testing process
   generateWay: rotation
-  distributed_cloud_enabled: False
+  distributed_cloud_enabled: True
 
 policy:
   name: model_workflow

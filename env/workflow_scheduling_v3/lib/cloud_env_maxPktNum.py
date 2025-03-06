@@ -639,16 +639,7 @@ class cloud_simulator(object):
                 f"Task {task} moved from region {task_region} to {selected_region}, latency penalty: {penalty}")
         else:
             logger.debug(f"No Mismatch penalty for task {task} being executed in VM region {selected_region}")
-        # Add additional penalty based on successor task communication costs
-        for successor in successor_tasks:
-            successor_region = self.nextWrf.processRegion.get(successor,
-                                                              selected_region)  # Use selected region if unknown
-            if successor_region != selected_region:
-                transfer_cost = self.set.dataset.data_transfer_cost_map[selected_region]
-                penalty += transfer_cost * self.set.dataset.regionMismatchPenaltyFactor  # Scale by penalty factor
-                logger.debug(
-                    f"Data transfer penalty from region {selected_region} to {successor_region}: {transfer_cost}")
-
+            
         logger.debug(f"Total penalty for choosing a VM outside the task region: {penalty}")
         return penalty
 
