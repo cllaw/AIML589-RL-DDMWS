@@ -4,7 +4,7 @@ env:
   seed: 42
   name: WorkflowScheduling-v3
   traffic_pattern: CONSTANT
-  gamma: 5  # Deadline factor for training process
+  gamma: 18  # Deadline factor for training process
   wf_size: S  # S, M, L, XL: the number of task in one workflow
   wf_num: 10  # The number of workflow in each training problem instance
   dataGen: 10000  # How many generations to iterate: the length of generative training dataset, usually >> generation for reproducible
