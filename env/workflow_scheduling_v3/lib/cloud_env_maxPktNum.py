@@ -435,7 +435,7 @@ class cloud_simulator(object):
             task_region = self.nextWrf.get_taskRegion(self.PrenextTask)
             successor_tasks = self.nextWrf.get_allnextTask(self.PrenextTask)
 
-            self.region_mismatch_penalty = self.calculate_region_mismatch_penalty(vm_region_id, task_region, self.PrenextTask, successor_tasks)
+            self.region_mismatch_penalty += self.calculate_region_mismatch_penalty(vm_region_id, task_region, self.PrenextTask, successor_tasks)
 
             processTime, data_transfer_cost, task_communication_delay = self.vm_queues[selectedVMind].task_enqueue(
                 self.PrenextTask,
@@ -449,7 +449,7 @@ class cloud_simulator(object):
 
             # Chuan added for DDMWS
             # Calculate the latency penalty for inter-region communication.
-            total_latency_penalty = task_communication_delay * self.set.dataset.latencyPenaltyFactor
+            total_latency_penalty = task_communication_delay * self.set.latencyPenaltyFactor
             self.SLApenalty += total_latency_penalty
 
             # print(f"Process Time: {processTime}")
@@ -633,23 +633,12 @@ class cloud_simulator(object):
         # If the task had a predefined region and was moved to a different region, add penalty
         if task_region is not None and selected_region != task_region:
             region_latency = self.set.dataset.latency_map[task_region][selected_region] / 1000  # Convert ms to seconds
-            penalty += region_latency * self.set.dataset.regionMismatchPenaltyFactor  # Scale penalty
+            penalty += region_latency * self.set.regionMismatchPenaltyFactor  # Scale penalty
             self.region_mismatch_count += 1
             logger.debug(
                 f"Task {task} moved from region {task_region} to {selected_region}, latency penalty: {penalty}")
         else:
             logger.debug(f"No Mismatch penalty for task {task} being executed in VM region {selected_region}")
-        # Add additional penalty based on successor task communication costs
-        for successor in successor_tasks:
-            successor_region = self.nextWrf.processRegion.get(successor,
-                                                              selected_region)  # Use selected region if unknown
-            if successor_region != selected_region:
-                transfer_cost = self.set.dataset.data_transfer_cost_map[selected_region]
-                penalty += transfer_cost * self.set.dataset.regionMismatchPenaltyFactor  # Scale by penalty factor
-                logger.debug(
-                    f"Data transfer penalty from region {selected_region} to {successor_region}: {transfer_cost}")
-
-        logger.debug(f"Total penalty for choosing a VM outside the task region: {penalty}")
         return penalty
 
     def state_info_construct(self):

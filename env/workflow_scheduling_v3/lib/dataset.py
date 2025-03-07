@@ -19,7 +19,7 @@ dataset_dict = {'S': dataset_30, 'M': dataset_50, 'L': dataset_100, 'XL': datase
 
 
 class dataset:
-    def __init__(self, arg, distributed_cloud_enabled):
+    def __init__(self, arg, distributed_cloud_enabled, data_scaling_factor):
         if arg not in dataset_dict:
             raise NotImplementedError
 
@@ -34,7 +34,7 @@ class dataset:
         self.wsetTotProcessTime = []
         for i, j in zip(['CyberShake', 'Montage', 'Inspiral', 'Sipht'], dataset_dict[arg]):
             dag, wsetProcessTime = buildGraph(f'{i}', parentdir + f'/workflow_scheduling_v3/dax/{j}.xml',
-                                              distributed_cloud_enabled, self.region_map)
+                                              distributed_cloud_enabled, data_scaling_factor, self.region_map)
 
             # Ya added: print the detailed info of dag
             import networkx as nx
@@ -60,11 +60,6 @@ class dataset:
 
         self.request = np.array([1]) * 0.01  # Poisson distribution: the default is 0.01, lets test 10.0 1.0 and 0.1
 
-        # TODO: Find some reasoning for these scaling constants and explain them
-        self.latencyPenaltyFactor = 0.55  # Between 0.2 - 2.0
-
-        self.regionMismatchPenaltyFactor = 0.55  # Experiment with values (0.1 - 1.0)
-
         # Base VM cost per CPU per region
         # Min CPU's provided from services is usually 2, so we define the base fee as this divide by 2 for 1 CPU
         # Assumption: extra costs only takes the cheapest, smallest VM into account.
@@ -84,14 +79,6 @@ class dataset:
             32: 10,
             48: 12
         }
-
-        # TODO: Incorporate these into EXECUTION_TIME calculation
-        # Data Communication transmittion time - amount of data + latency
-        # amount of data transferred between dependent tasks
-        # D / bandwidth (bandwitdh for intercontinental connections)
-
-        # Data transfer, Latency. Cross check with the simulator that the total cost/time accounts for this
-        # Can do this by hand, and emulating the code.
 
         # Inter-region communication delays in milliseconds (ms)
         self.latency_map = {

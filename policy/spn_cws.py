@@ -87,9 +87,6 @@ class WFPolicy(BasePolicy):
             x = self.model(task_info, vm_info)
             x = x.permute(1, 0, 2)
 
-            # print("TASK-INFO:", task_info)
-            # print("VM-INFO:", vm_info)
-
             if removeVM is not None:  # doublecheck the vm that should be removed
                 x[:, removeVM, :] = float("-inf")
                 

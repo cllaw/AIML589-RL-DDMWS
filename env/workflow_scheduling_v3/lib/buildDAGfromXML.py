@@ -8,16 +8,18 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import numpy as np
 
-dataScalingFactor = 0.5  # Used as the scaling factor to approximate physical size of tasks based on processing time
-
 
 def calculate_dataSize(process_time, data_scaling_factor):
+    """
+    Modifications to dataset for distributed workflow:
+    In DDMWS we estimate the datasize in bits of a task based on its processing time
+    """
     dataSize_mb = process_time * data_scaling_factor  # Data size in MB
     dataSize_bits = dataSize_mb * 8000000  # Convert MB to bits
     return dataSize_bits
 
 
-def buildGraph(type, filename, distributed_cloud_enabled, region_map):
+def buildGraph(type, filename, distributed_cloud_enabled, dataScalingFactor, region_map):
     # print("Building DAG:", {filename})
     tot_processTime = 0
     dag = nx.DiGraph(type=type)
@@ -32,9 +34,6 @@ def buildGraph(type, filename, distributed_cloud_enabled, region_map):
             for p in child:
                 # print(f"Processing child {p}, of size: {int(p.attrib['size'])}")
                 size += int(p.attrib['size'])
-
-            # Modifications to dataset for distributed workflow:
-            # In DDMWS we estimate the datasize in bits of a task based on its processing time
 
             # TODO: Assign region based on dataset mapping, could create some sort of heuristic to extend the dataset by
             #   assigning region ids of tasks with some criteria etc
@@ -61,7 +60,7 @@ def buildGraph(type, filename, distributed_cloud_enabled, region_map):
 
     # print(f"Total Process time for {filename}: {tot_processTime}")
 
-    # Toggle to draw DAG's of each representation built as part of a list of workflows.
+    # Uncomment to draw DAG's of each representation built as part of a list of workflows.
     # draw_dag(dag, region_map, f"{filename}.png")
 
     return dag, tot_processTime
@@ -120,14 +119,14 @@ def draw_dag(dag, region_map, save_path=None):
         [region_map[color] for color in color_map.keys()],
         title="Region ID",
         loc="lower right",
-        fontsize='small',
-        title_fontsize='medium'
+        fontsize='large',
+        title_fontsize='large',
     )
 
     # Draw edges
     nx.draw_networkx_edges(dag, pos, edgelist=dag.edges(), edge_color='gray')
 
-    plt.title("Distributed_CyberShake_30")  # TODO: Add dynamic name for title
+    plt.title("Distributed CyberShake(30) - Small Instance", fontsize=20)  # TODO: Add dynamic name for title
 
     if save_path:
         plt.savefig(save_path, format='png', dpi=300, bbox_inches='tight')
