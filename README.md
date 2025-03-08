@@ -7,12 +7,14 @@
 
 This codebase is the complete implementation used in [our paper](Chuan-Law-MAI-Thesis-2024.pdf) to optimize Dynamic Workflow Scheduling for
 Geo-Distributed Cloud Services. It consists of three main parts:
-- Self Attention Policy Network for Cloud Workflow Scheduling (SPN-CWS) developed by [Ya Shen](https://github.com/YaShen998) et al.
+- **Self Attention Policy Network for Cloud Workflow Scheduling** (SPN-CWS) developed by [Ya Shen](https://github.com/YaShen998) et al. 
+  Creates a scheduling policy that chooses the most suitable VM to execute a workflow task.
   - Located in `policy`
-- Simulated Geo-Distributed Cloud Workflow Environment extended by Chuan Law et al.
-  - Located in `env/workflow_scheduling_v3`
-- Evolutionary Reinforcement Learning (ERL) system based on [OpenAI's Evolution Strategies](https://openai.com/index/evolution-strategies/)
+- **Evolutionary Reinforcement Learning (ERL)** system based on [OpenAI's Evolution Strategies](https://openai.com/index/evolution-strategies/).
   - Located in `assembly` and `env/gym_openAI`
+- **Geo-Distributed Cloud Workflow Simulator** extended by Chuan Law et al.
+  Used by the ERL system to train and evaluate SPN-CWS with geographically distributed workflow tasks.
+  - Located in `env/workflow_scheduling_v3`
 
 ---
 

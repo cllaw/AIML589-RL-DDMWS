@@ -1,0 +1,40 @@
+env:
+  dataGen: 10000
+  data_scaling_factor: 0.5
+  distributed_cloud_enabled: true
+  evalNum: 1
+  gamma: 18
+  generateWay: rotation
+  latency_penalty_factor: 0.5
+  name: WorkflowScheduling-v3
+  region_mismatch_penalty_factor: 0.5
+  seed: 42
+  system: Windows
+  traffic_pattern: CONSTANT
+  validNum: 3
+  wf_num: 10
+  wf_size: S
+optim:
+  generation_num: 3000
+  input_clip: false
+  input_clip_value_max: null
+  input_clip_value_min: null
+  input_running_mean_std: true
+  learning_rate: 0.001
+  learning_rate_decay: 0.9999
+  maximization: true
+  name: es_openai
+  population_size: 40
+  reinforce_learning_rate: 0.001
+  reward_norm: false
+  reward_shaping: true
+  sigma_decay: 1.0
+  sigma_init: 0.05
+  weight_decay: 0.0
+policy:
+  action_num: 1
+  action_type: greedy
+  add_gru: false
+  discrete_action: true
+  name: model_workflow
+  state_num: 12
