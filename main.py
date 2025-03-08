@@ -28,6 +28,5 @@ def main():
     Builder(baseconfig, testMatrix).build().train()
 
 
-# TODO: add new DDMWS constants to the optim section of the profile.yml
 if __name__ == "__main__":
     main()

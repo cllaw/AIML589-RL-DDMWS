@@ -36,22 +36,17 @@ def buildGraph(type, filename, distributed_cloud_enabled, dataScalingFactor, reg
                 size += int(p.attrib['size'])
 
             # TODO: Assign region based on dataset mapping, could create some sort of heuristic to extend the dataset by
-            #   assigning region ids of tasks with some criteria etc
+            #   assigning region ids of tasks with some criteria etc. But currently, this is just random.
             # if self.nextTask in self.workflow_dataset_map:
             #     dataset = self.workflow_dataset_map[self.nextTask]
             #     self.processRegion[self.nextTask] = self.dataset_region_map[dataset]
-            # else:
-            #     # Fallback: Random assignment if no mapping exists (only for testing)
+            # else:  # Fallback: Random assignment if no mapping exists (only for testing)
             random_region = np.random.choice(3) if distributed_cloud_enabled else 0
             process_time = float(child.attrib['runtime']) * 16
             dag.add_node(int(child.attrib['id'][2:]), processTime=process_time, size=size,
                          regionId=random_region, dataSize=calculate_dataSize(process_time, dataScalingFactor))
             tot_processTime += process_time
 
-            # print(f"Total Process time of job {int(child.attrib['id'][2:])}: {float(child.attrib['runtime']) * 16}")
-            # print(f"Total Size of job {int(child.attrib['id'][2:])}: {size}")
-
-            # dag.add_node(child.attrib['id'], processTime=float(child.attrib['runtime'])*16, size=size)
         if child.tag == '{http://pegasus.isi.edu/schema/DAX}child':
             kid = int(child.attrib['ref'][2:])
             for p in child:

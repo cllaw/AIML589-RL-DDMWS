@@ -78,7 +78,7 @@ class cloud_simulator(object):
                                                    'Task Index', 'Task Size', 'Task Execution Time', 'Task Ready Time', 'Task Start Time', 'Task Finish Time',
                                                    'VM ID', 'VM speed', 'Price', 'VM Rent Start Time', 'VM Rent End Time', 'VM Pending Index'])  # 6 + 6 + 6 columns
 
-        # TODO: Make this work dynamically so we can test older models with different numbers of states
+        # TODO: Make num_states read from config so we can dynamically test older models trained with different num_states
         num_states = 10
         self.observation_space = gymnasium.spaces.Box(low=0, high=10000, shape=(num_states + self.set.history_len,))
         # self.observation_space = gymnasiumnasium.spaces.Box(low=0, high=10000, shape=(9 + self.set.history_len,))  # Ya added
@@ -291,9 +291,6 @@ class cloud_simulator(object):
             self.vm_queues[VMindex].update_vmRentEndTime(self.set.VMpayInterval)
             self.vm_queues_rentEndTime[VMindex] = self.vm_queues[VMindex].rentEndTime
 
-            # print("Extend remove VMs", self.vm_queues[VMindex].loc)  #TODO: Remove .loc attribute or rework
-            # print("Extend remove VMs", self.vm_queues[VMindex])
-
             self.update_VMcost(self.vm_queues[VMindex].regionid, self.vm_queues[VMindex].cpu, True)
             self.VMrentInfos[key] = self.VMrentInfos[key][:4] + [self.vm_queues[VMindex].rentEndTime]  # self.VMrentInfos[key][-1]+self.set.dataset.vmPrice[self.vm_queues[VMindex].cpu]]
 
@@ -382,9 +379,9 @@ class cloud_simulator(object):
             vm_type_index = diff % self.VMtypeNum
             vm_cpu = self.set.dataset.vmVCPU[vm_type_index]  # int representing how many cpus on a particular vm
 
-            # TODO: Try and train a baseline and spatial model with this settings
-            #  Assumption, give full control to policy for seelcting VM
-            #  Assumption, in method 2 allowing new VMs being made to always be the correct region limits exploration
+            # TODO: Try and train a baseline and spatial model with these settings:
+            #  Assumption, give full control to policy for selwcting VM
+            #  Assumption, allow new VMs being made to always be the correct region which limits exploration
             # Region Selection Rule 1
             # Assign region ID based on diff and the number of regions if distributed cloud setting is enabled
             # region_id = diff % region_count if self.set.distributed_cloud_enabled else 0
@@ -430,7 +427,6 @@ class cloud_simulator(object):
 
             # DDMWS: task_enqueue adds Data Transfer Latency if next selected VM is not in the same region
             #   as the previous workflow
-            # TODO: Breakdown a workflow into smaller tasks and validate data transfer costs are correct
             vm_region_id = self.vm_queues[selectedVMind].regionid
             task_region = self.nextWrf.get_taskRegion(self.PrenextTask)
             successor_tasks = self.nextWrf.get_allnextTask(self.PrenextTask)
@@ -449,6 +445,9 @@ class cloud_simulator(object):
 
             # Chuan added for DDMWS
             # Calculate the latency penalty for inter-region communication.
+            # IN DDMWS we account for latency being considered when evaluating policies in order to:
+            #   Penalize policies that select VM's that result in high-latency task executions.
+            #   Reward policies that optimize job scheduling across geo-distributed tasks.
             total_latency_penalty = task_communication_delay * self.set.latencyPenaltyFactor
             self.SLApenalty += total_latency_penalty
 
@@ -600,8 +599,6 @@ class cloud_simulator(object):
         # print("Episode VMrentHours:", self.VMrentHours)
         # print("VM Location:", (self.set.dataset.vm_basefee[region_id]))
 
-    # TODO: Isolate all source VM's to US and all successor tasks to asia and record total bits of all tasks
-    #  for each workflow. Then verify if additional data transfer costs adds up vs if not distributed
     def update_VMcost_with_data_transfer_cost(self, data_transfer_cost):
         logger.debug(f"Data Transfer Cost to add: {data_transfer_cost}")
         self.VMcost += data_transfer_cost
@@ -664,8 +661,6 @@ class cloud_simulator(object):
         task_region = self.nextWrf.processRegion[self.nextTask]  # Assuming tasks have an originDC (region ID)
         # print("Verify task region", {task_region})
 
-        # TODO: 14th Feb - 1) Train without spatial data
-        #                  2) Train with increased Latency and RegionMismatch penalty factor - done
         # get region coordinates
         latitude, longitude = self.set.dataset.region_coords[task_region]
 
@@ -710,7 +705,6 @@ class cloud_simulator(object):
             ob[-1] = task_ob + [meetDeadline, extraCost, vm_remainTime, vm_region_id]
 
         for dcind in range(self.dcNum):  # for new VM that can be rented
-            # TODO: Find out what ob does for evaluation (if anything)
             # print(f"For new VM that can be rented dcind: {dcind}")
             for cpuNum in self.set.dataset.vmVCPU:
                 task_exe_time = self.nextWrf.get_taskProcessTime(self.nextTask) / cpuNum

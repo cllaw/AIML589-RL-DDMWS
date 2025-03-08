@@ -82,7 +82,7 @@ class Setting(object):
             region_ids = [0, 1, 2] if self.distributed_cloud_enabled else [0]
 
             latency_matrix = np.array([region_ids])
-            latency = np.multiply(latency_matrix, 0.5)  # TODO: Incorporate real latency between the regions here
+            latency = np.multiply(latency_matrix, 0.5)  # TODO: Do we need to incorporate real latency here?
             logger.debug(f"Latency: {latency}")
             self.candidate = region_ids
             self.dcNum = len(self.candidate)   # default: 3

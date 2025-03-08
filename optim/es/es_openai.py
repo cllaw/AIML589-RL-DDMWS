@@ -76,13 +76,6 @@ class ESOpenAI(BaseOptim):
         return perturbations
 
     def next_population(self, assemble, results, g):
-
-        # TODO
-        # IN DDMWS we need to account for latency being considered when evaluating policies
-        #   Penalize policies that select high-latency resources.
-        #   Reward policies that optimize job scheduling across geo-distributed nodes.
-
-        # latency_penalty = compute_latency_penalty(job_assignments)
         rewards = results['rewards'].tolist()
 
         print(f"Training rewards: {rewards}")
