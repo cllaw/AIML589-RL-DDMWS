@@ -27,7 +27,7 @@ Geo-Distributed Cloud Services. It consists of three main parts:
 
 ### Usage
 The follow details how models are trained and evaluated. The default parameters set are the ones used in our [original 
-paper](`Chuan-Law-MAI-Thesis-2024.pdf`).
+paper](Chuan-Law-MAI-Thesis-2024.pdf).
 
 #### Training
 Training of a new model is done by executing the `main.py` python file:
